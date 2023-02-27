@@ -21,7 +21,7 @@ case_div: casegen
 	./casegen div 100 > case_div
 
 case_all: case_add case_sub case_mul case_div
-	cat case_add case_sub case_mul case_div | cat >> all	 				
+	cat case_add case_sub case_mul case_div | cat >> case_all	 				
 
 
 # 
