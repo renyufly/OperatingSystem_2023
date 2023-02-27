@@ -6,7 +6,7 @@ void m_putch(char ch) {
 }
 
 char m_getch(void) {
-	 char ch =  (volatile char) GETCHAR_ADDRESS;                      //  ←
+	 char ch =  *((volatile char* ) GETCHAR_ADDRESS);                      //  ←
 	 return ch;
 }
 
