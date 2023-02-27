@@ -25,7 +25,7 @@ EXPORT(_start_mips)
 	li      a3, 3
 	/* use 'addiu  sp, sp, <x>' to push a proper-sized frame onto the stack */
 	/* Your code here. (3/6) */
-	addiu sp, sp, 12 
+	addiu sp, sp, 16 
 	/*  ↑  */
 
 	lw      t1, var
