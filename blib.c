@@ -30,7 +30,7 @@ char *strncpy(char *dst, const char *src, size_t n) {
 
 char *strcat(char *dst, const char *src) {
 	//  ↓
-	char* p;
+	char* p = dst;
 	while(*p) {
 		p++;
 	}
@@ -50,7 +50,7 @@ int strcmp(const char *s1, const char *s2) {
 		if(c1 == '\0') {
 			return c1 - c2;
 		}
-	}while(c1 == c2)
+	}while(c1 == c2);
 	return c1 - c2;
 
 }
