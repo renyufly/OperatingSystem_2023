@@ -1,6 +1,6 @@
 #!/bin/bash
-filename = $1
-newfile = $2
+filename=$1
+newfile=$2
 
 touch $newfile
 
