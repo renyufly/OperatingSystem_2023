@@ -10,15 +10,20 @@ else
     case $2 in
     "--latest")
         # Your code here. (2/4)
-
+	tail -5 $path
     ;;
     "--find")
         # Your code here. (3/4)
-
+	 
+	grep -E $3 $path > $3.txt
     ;;
     "--diff")
         # Your code here. (4/4)
-
+	if [ diff $path $3 > /dev/null ]
+		echo same
+	else
+		echo different
+	fi	
     ;;
     esac
 fi
