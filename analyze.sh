@@ -1,8 +1,10 @@
 #!/bin/bash
+path=$1          #object path
 
 if [ $# -eq 1 ];
 then
     # Your code here. (1/4)
+    grep -E 'WARN | ERROR' $path > bug.txt
 
 else
     case $2 in
