@@ -14,15 +14,17 @@ else
     ;;
     "--find")
         # Your code here. (3/4)
-	 
-	grep -E $3 $path > $3.txt
+	 grep -E $3 $path > $3.txt
+
     ;;
     "--diff")
         # Your code here. (4/4)
-	if [ diff $path $3 > /dev/null ]
-		echo same
+	diff $path $3 > /dev/null
+	if [ $? -eq 0 ]
+	then
+		echo "same"
 	else
-		echo different
+		echo "different"
 	fi	
     ;;
     esac
