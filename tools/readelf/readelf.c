@@ -54,7 +54,7 @@ int readelf(const void *binary, size_t size) {
 		unsigned int addr;
 		/* Exercise 1.1: Your code here. (2/2) */
 		shdr = (Elf32_Shdr *)(sh_table + i * sh_entry_size);
-		addr = &shdr->sh_addr;
+		addr = shdr->sh_addr;
 
 		printf("%d:0x%x\n", i, addr);
 	}
