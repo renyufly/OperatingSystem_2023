@@ -47,11 +47,16 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 
 		/* check format flag */
 		/* Exercise 1.4: Your code here. (5/8) */
-		long_flag = 0;
-		if(*fmt == 'l') {   
-			long_flag = 1;
-			fmt++;
-		}
+		padc = ' ';
+                ladjust = 0;
+                if(*fmt == '-') {
+                        ladjust = 1;
+                        fmt++;
+	        }       
+                if(*fmt == '0') {
+                        padc = '0';
+                        fmt++;
+                }
 
 		/* get width */
 		/* Exercise 1.4: Your code here. (6/8) */
@@ -63,16 +68,11 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 
 		/* check for long */
 		/* Exercise 1.4: Your code here. (7/8) */
-		padc = ' ';
-		ladjust = 0;
-		if(*fmt == '-') {
-			ladjust = 1;
-			fmt++;
-		}
-		if(*fmt == '0') {
-			padc = '0';
-			fmt++;
-		}
+		 long_flag = 0;
+                 if(*fmt == 'l') {   
+                         long_flag = 1;
+                         fmt++;
+                 }
 		/*       ——————————       */
 
 		neg_flag = 0;
