@@ -104,7 +104,7 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 				num = -num;
 				neg_flag = 1;
 			}
-			print_num(out, data, num, 10, neg_flag, width, lajust, padc, 0);
+			print_num(out, data, num, 10, neg_flag, width, ladjust, padc, 0);
 
 			break;
 
