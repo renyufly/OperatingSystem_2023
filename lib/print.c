@@ -155,6 +155,36 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 			s = (char *)va_arg(ap, char *);
 			print_str(out, data, s, width, ladjust);
 			break;
+		
+		case 'R':                       ////
+			c = '(';
+			print_char(out, data, c, 0, 0);
+			 if (long_flag) {
+                                  num = va_arg(ap, long int);
+                          } else {
+                                  num = va_arg(ap, int);
+                          }
+                         if(num < 0) {
+                                 num = -num;
+                                 neg_flag = 1;
+                         }
+                         print_num(out, data, num, 10, neg_flag, width, ladjust, padc, 0);  
+			char comma = ',';
+			print_char(out, data, comma, 0, 0);
+			neg_flag = 0;
+			 if (long_flag) {
+                                   num = va_arg(ap, long int);
+                          } else {
+                                   num = va_arg(ap, int);
+                           }
+                          if(num < 0) {
+                                  num = -num;
+                                  neg_flag = 1;
+                          }
+                          print_num(out, data, num, 10, neg_flag, width, ladjust, padc, 0);
+			char right = ')';
+			print_char(out, data, right, 0, 0);
+			break;
 
 		case '\0':
 			fmt--;
