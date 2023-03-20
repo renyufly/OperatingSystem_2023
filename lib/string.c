@@ -1,4 +1,34 @@
 #include <types.h>
+#include <print.h>      ////
+
+/* ↓     */
+/* typedef struct buffer{
+             char* str;
+             int len;
+    }bunode;*/
+
+void outputstr(void *data, const char *buf, size_t len) {
+	
+	for (int i = 0; i < len; i++) {
+		data = buf[i];
+		data++;
+	}
+	
+}
+
+
+int sprintf(char *buf, const char *fmt, ...) {
+	char *init = buf;	
+	va_list ap;
+	va_start(ap, fmt);
+	vprintfmt(outputstr,buf , fmt, ap);
+	va_end(ap);
+	int len = buf-init;
+	return len;
+	
+}
+
+/* ↑    */
 
 void *memcpy(void *dst, const void *src, size_t n) {
 	void *dstaddr = dst;
