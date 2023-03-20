@@ -2,6 +2,7 @@ void sprintf_1_check() {
 	char str[100];
 	sprintf(str, "%d\n", 12321);
 	printk("%s", str);
+	printk("hello\n");
 	sprintf(str, "%c\n", 97);
 	printk("%s", str);
 }

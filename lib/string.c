@@ -1,29 +1,30 @@
 #include <types.h>
 #include <print.h>      ////
 
-/* ↓     */
+
 /* typedef struct buffer{
              char* str;
              int len;
     }bunode;*/
 
 void outputstr(void *data, const char *buf, size_t len) {
-	char * curData = data;
+	 char* curData = data;
 	for (int i = 0; i < len; i++) {
-		*curData = buf[i];
+		*curData = buf[i];	
 		curData++;
 	}
-	
+	data = curData;
 }
 
 
 int sprintf(char *buf, const char *fmt, ...) {
-	char *init = buf;	
+	char* init = buf;	
 	va_list ap;
 	va_start(ap, fmt);
-	vprintfmt(outputstr,buf , fmt, ap);
+	vprintfmt(outputstr,init , fmt, ap);
 	va_end(ap);
-	int len = buf-init;
+	int len = init - buf;
+	buf = init;
 	return len;
 	
 }
