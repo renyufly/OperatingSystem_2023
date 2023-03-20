@@ -8,24 +8,25 @@
     }bunode;*/
 
 void outputstr(void *data, const char *buf, size_t len) {
-	 char* curData = data;
-	for (int i = 0; i < len; i++) {
-		*curData = buf[i];	
-		curData++;
+	 char** buff =(char**)data;
+	 char *str=*buff;
+	 int i;
+	for (i = 0; i < len; i++) {
+		str[i] = buf[i];		
 	}
-	data = curData;
+	str[i] = '\0';	
+	*buff += len;
 }
 
 
 int sprintf(char *buf, const char *fmt, ...) {
-	char* init = buf;	
+	char* init =buf;
 	va_list ap;
 	va_start(ap, fmt);
-	vprintfmt(outputstr,init , fmt, ap);
+	vprintfmt(outputstr, &init , fmt, ap);
 	va_end(ap);
-	int len = init - buf;
-	buf = init;
-	return len;
+	
+	return (int)(init)-(int)(buf);
 	
 }
 
