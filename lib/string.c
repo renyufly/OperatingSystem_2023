@@ -8,10 +8,10 @@
     }bunode;*/
 
 void outputstr(void *data, const char *buf, size_t len) {
-	
+	char * curData = data;
 	for (int i = 0; i < len; i++) {
-		data = buf[i];
-		data++;
+		*curData = buf[i];
+		curData++;
 	}
 	
 }
