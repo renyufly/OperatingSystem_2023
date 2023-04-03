@@ -26,8 +26,9 @@ u_int page_perm_stat(Pde *pgdir, struct Page *pp, u_int perm_mask) {
 		if((*pdtable) & PTE_V) {
 		  for(j=0; j<1024; j++) {
 			Pte* ppte = pdtable+j;
+			
 			if(ppte && (*ppte & PTE_V)) {
-				if( (*ppte >> 12)<<12 == page2pa(pp) && ((((*ppte)<<20 )>>20) &  perm_mask) ) {
+				if( (*ppte >> 12)<<12 == page2pa(pp) && ((((*ppte)<<20 )>>20) &  perm_mask ) ) {
 					cnt++;
 				}
 			}
@@ -263,7 +264,7 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 			page_remove(pgdir, asid, va);
 		} else {
 			tlb_invalidate(asid, va);
-			*pte = page2pa(pp) | perm | PTE_V;
+			*pte = page2pa(pp) | perm ;
 			return 0;
 		}
 	}
@@ -283,7 +284,7 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 	/* Step 4: Insert the page to the page table entry with 'perm | PTE_V' and increase its
 	 * 'pp_ref'. */
 	/* Exercise 2.7: Your code here. (3/3) */
-	*pte = page2pa(pp) | perm | PTE_V;
+	*pte = page2pa(pp) | perm ;
 	pp->pp_ref += 1;
 
 	return 0;
