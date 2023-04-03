@@ -23,13 +23,15 @@ u_int page_perm_stat(Pde *pgdir, struct Page *pp, u_int perm_mask) {
 		Pde *pg_entry = pgdir + i;
 		Pte* pdtable = KADDR(PTE_ADDR(*pg_entry));
 		int j;
-		for(j=0; j<1024; j++) {
+		if((*pdtable) & PTE_V) {
+		  for(j=0; j<1024; j++) {
 			Pte* ppte = pdtable+j;
 			if(ppte && (*ppte & PTE_V)) {
 				if( (*ppte >> 12)<<12 == page2pa(pp) && ((((*ppte)<<20 )>>20) &  perm_mask) ) {
 					cnt++;
 				}
 			}
+		  }
 		}
 	}
 	
