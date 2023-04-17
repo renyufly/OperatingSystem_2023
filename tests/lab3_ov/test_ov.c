@@ -14,7 +14,6 @@ int main() {
 	if (dst != (src1 + src2)) {
 		return -1; // 如果异常处理结果不正确进程将运行结束并返回-1
 	}
-/*
 	
 	// * 测试 sub
 	 
@@ -34,6 +33,5 @@ int main() {
 		return -1;
 	}
 	return dst;
-*/
 }
 
