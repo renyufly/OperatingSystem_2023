@@ -33,10 +33,11 @@ void do_reserved(struct Trapframe *tf) {
 void do_ov(struct Trapframe *tf) {
 	// 你需要在此处实现问题描述的处理要求
 	curenv->env_ov_cnt++;
-	unsigned long epc = tf->cp0_epc;
-	struct Page* pp = page_lookup(curenv->env_pgdir, epc, NULL);
-	epc = page2kva(pp) | (epc & 0xfff);	
-	unsigned long instr = *(unsigned long* )epc;
+	unsigned long epc = tf->cp0_epc;       //利用EPC 寄存器保存的值，获取发生异常的指令所在的虚拟地址。
+	struct Page* pp = page_lookup(curenv->env_pgdir, epc, NULL);  //通过查询 curenv 的页表【page_lookup】，获得用户虚拟地址【EPC】对应的物理地址。
+	epc = page2kva(pp) | (epc & 0xfff);     //page2kva: page to kernel virtual address;但注意这种转换是把低12位直接置零了，所以要加上页内偏移。
+	                                        // 将该物理地址转化至 kseg0 区间中对应的虚拟地址。
+	unsigned long instr = *(unsigned long* )epc;  //转成指针让epx指向对应地址。要对地址对应的指令进行修改。先将epc转成指针，在对指针解引用和修改指针内容。
 	if((instr & 0x20000000) == 0x20000000) { 
                  unsigned long assm = instr;
 		 unsigned long t = (instr & 0x1F0000) >> 16;
