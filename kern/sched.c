@@ -17,36 +17,55 @@
 void schedule(int yield) {
 	static int count = 0; // remaining time slices of current env
 	struct Env *e = curenv;
+	 static int user_time[5]; // 创建一个用户累计运行时间片数数组
+	int user[5] = {0};
+	struct Env *tmp = NULL;
+	TAILQ_FOREACH( tmp,&env_sched_list, env_sched_link) {
+		user[tmp->env_user]++;
+	}
 
-	/* We always decrease the 'count' by 1.
-	 *
-	 * If 'yield' is set, or 'count' has been decreased to 0, or 'e' (previous 'curenv') is
-	 * 'NULL', or 'e' is not runnable, then we pick up a new env from 'env_sched_list' (list of
-	 * all runnable envs), set 'count' to its priority, and schedule it with 'env_run'. **Panic
-	 * if that list is empty**.
-	 *
-	 * (Note that if 'e' is still a runnable env, we should move it to the tail of
-	 * 'env_sched_list' before picking up another env from its head, or we will schedule the
-	 * head env repeatedly.)
-	 *
-	 * Otherwise, we simply schedule 'e' again.
-	 *
-	 * You may want to use macros below:
-	 *   'TAILQ_FIRST', 'TAILQ_REMOVE', 'TAILQ_INSERT_TAIL'
-	 */
 	/* Exercise 3.12: Your code here. */
 	if(yield || (count == 0) || (e == NULL) || (e->env_status != ENV_RUNNABLE)) {
 		if(e && e->env_status == ENV_RUNNABLE) {
 			TAILQ_REMOVE(&env_sched_list, e, env_sched_link);
 			TAILQ_INSERT_TAIL(&env_sched_list, e, env_sched_link);
+			user_time[e->env_user] += e->env_pri;
 		}
+
 		if(TAILQ_EMPTY(&env_sched_list)) {
 			panic("no runnable envs");
 		}
-		e = TAILQ_FIRST(&env_sched_list);
-		count = e->env_pri;	
+
+		int next_user;   //next user to run
+		int i;
+		for(i=0; i<5; i++) {
+			if(user[i] != 0) {
+				next_user = i;
+				break;	
+			}
+		}
+		int j;
+		for(j=0; j<5; j++) {
+			if(user[j] != 0) {
+				if(user_time[j] < user_time[next_user]) {
+					next_user = j;
+				} else if(user_time[j] == user_time[next_user]) {
+					if(j < next_user) {
+						next_user = j;
+					}
+				}
+			}
+		}
+		struct Env *temp = NULL;
+		TAILQ_FOREACH(temp, &env_sched_list, env_sched_link) {
+			if(temp->env_user == next_user) {
+				e = temp;
+				break;	
+			}
+		}
+		count = e->env_pri;
 	}
-	count--;
-	env_run(e);
+		count--;
+		env_run(e);
 
 }
