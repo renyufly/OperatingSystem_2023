@@ -3,6 +3,9 @@
 
 // OS error codes.
 
+// new-add
+#define E_IPC_NOT_GROUP 14
+
 // Unspecified or unknown problem
 #define E_UNSPECIFIED 1
 

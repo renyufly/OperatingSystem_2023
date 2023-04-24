@@ -14,6 +14,67 @@ extern struct Env *curenv;
  * Pre-Condition:
  * 	`c` is the character you want to print.
  */
+
+ static inline int is_illegal_va(u_long va) {
+         return va < UTEMP || va >= UTOP;
+ }
+ 
+ static inline int is_illegal_va_range(u_long va, u_int len) {
+         if (len == 0) {
+                 return 0;
+         }
+         return va + len < va || va < UTEMP || va + len > UTOP;
+ }
+
+void sys_set_gid(u_int gid){
+	curenv->env_gid = gid;
+	return;
+}
+
+int sys_ipc_try_group_send(u_int whom, u_int val, const void *srcva, u_int perm) {
+	struct Env *e;
+	struct Page *p;
+/* Step 1: Check if 'srcva' is either zero or a legal address. */
+	if(srcva != 0 && is_illegal_va(srcva)) { //'srcva' 要么为0要么合法
+		return -E_INVAL;
+	}
+/* Step 2: Convert 'envid' to 'struct Env *e'. */
+/* This is the only syscall where the 'envid2env' should be used with'checkperm' UNSET,
+* because the target env is not restricted to 'curenv''s children. */
+	envid2env(whom, &e, 0); //根据envid 找到相应进程。 【唯一checkperm为0】
+	if(e->env_ipc_recving == 0) { //指定进程是否为可接收状态。
+		return -E_IPC_NOT_RECV;
+	}
+	
+	/*  */
+	if(curenv->env_gid != e->env_gid) {
+		return -E_IPC_NOT_GROUP;
+	}
+
+/* Step 4: Set the target's ipc fields. */
+	e->env_ipc_value = val;
+	e->env_ipc_from = curenv->env_id;
+	e->env_ipc_perm = PTE_V | perm; //PTE_V 有效位,若某页表项的有效位为1,则该页表项中高20位就是对应物理页号
+	e->env_ipc_recving = 0;
+	e->env_status = ENV_RUNNABLE; //修改进程控制块中的进程状态，使接受数据的进程可继续运行。
+	TAILQ_INSERT_TAIL(&env_sched_list, (e), env_sched_link);
+/* Step 6: If 'srcva' is not zero, map the page at 'srcva' in 'curenv' to */
+/* Return -E_INVAL if 'srcva' is not zero and not mapped in 'curenv'. */
+	if (srcva != 0) { //srcva 不为0时，才建立两个进程的页面映射关系
+		Pte* tmp_pte = NULL;
+		p = page_lookup(curenv->env_pgdir, srcva, &tmp_pte); //查找srcva(发射进程)对应物理页框
+		if(p == NULL) {
+			return -E_INVAL;
+		}
+		int ret = page_insert(e->env_pgdir, e->env_asid, p, e->env_ipc_dstva, e->env_ipc_perm); //让recv(接受进程)映射对应srcva的物理页框。[页控制块p对应的物理页面，并将页表项权限为设置为perm]
+		if(ret != 0) {
+			return ret;
+		}
+	}
+	return 0;
+}
+
+ //
 void sys_putchar(int c) {
 	printcharc((char)c);
 	return;
@@ -107,6 +168,7 @@ int sys_set_tlb_mod_entry(u_int envid, u_int func) {
 /* Overview:
  *   Check 'va' is illegal or not, according to include/mmu.h
  */
+ /*
 static inline int is_illegal_va(u_long va) {
 	return va < UTEMP || va >= UTOP;
 }
@@ -117,6 +179,7 @@ static inline int is_illegal_va_range(u_long va, u_int len) {
 	}
 	return va + len < va || va < UTEMP || va + len > UTOP;
 }
+*/
 
 /* Overview:
  *   Allocate a physical page and map 'va' to it with 'perm' in the address space of 'envid'.
@@ -259,15 +322,20 @@ int sys_exofork(void) {
 
 	/* Step 1: Allocate a new env using 'env_alloc'. */
 	/* Exercise 4.9: Your code here. (1/4) */
+	env_alloc(&e, curenv->env_id);         //curenv即父进程
 
 	/* Step 2: Copy the current Trapframe below 'KSTACKTOP' to the new env's 'env_tf'. */
 	/* Exercise 4.9: Your code here. (2/4) */
+	e->env_tf = *((struct Trapframe* )KSTACKTOP - 1);   //指针以下的部分。
 
 	/* Step 3: Set the new env's 'env_tf.regs[2]' to 0 to indicate the return value in child. */
 	/* Exercise 4.9: Your code here. (3/4) */
+	e->env_tf.regs[2] = 0;         //即子进程的$v0寄存器值。
 
 	/* Step 4: Set up the new env's 'env_status' and 'env_pri'.  */
 	/* Exercise 4.9: Your code here. (4/4) */
+	e->env_status = ENV_NOT_RUNNABLE;
+	e->env_pri = curenv->env_pri;
 
 	return e->env_id;
 }
@@ -514,6 +582,10 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_ipc_recv] = sys_ipc_recv,
     [SYS_cgetc] = sys_cgetc,
     [SYS_write_dev] = sys_write_dev,
+    //
+    [SYS_gid] = sys_set_gid,
+    [SYS_group_send] = sys_ipc_try_group_send,
+    //
     [SYS_read_dev] = sys_read_dev,
 };
 
