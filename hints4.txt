@@ -1,0 +1,234 @@
+上机
+其实认真阅读login的代码，也能猜出大概要考啥。
+
+lab4-1
+exam
+俺们这个MOS进行系统调用时，一次只能传6个参数，现在要syscall_*和msyscall要传参数的个数不确定了，并且保证第二个参数就是要传入的总的参数个数。
+
+背景 常用的操作系统内核如Linux、XNU等，系统调用的参数个数少至0个、多至十多个不等。系统调用参数的传递往往适配参数的个数以避免性能的损失。 下面我们将尝试实现这一方式的系统调用参数传递。
+
+题目要求（第一部分）
+现在我们要重新定义系统调用的参数传递规则(下面的参数顺序是用户态调用syscall指令时的顺序）
+
+第一个参数为系统调用号（和之前含义相同）
+
+第二个参数为此系统调用参数个数
+
+之后的参数依次是这个系统调用的参数（个数与第二个参数一致） 用户态按着这个新规则的系统调用实现方式为：
+
+int syscall_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm)
+{
+    return msyscall(SYS_mem_map, 5, srcid, srcva, dstid, dstva, perm);
+}
+同学们需要对已有的用户态系统调用均按此规则修改。 内核态处理系统调用参数，合理操作寄存器与栈，以保证在原有lib/syscall_all.c中代码不更改的情况下可以使系统调用机制正常运行。
+
+题目要求（第二部分）
+在基础测试的基础上，实现一个新的系统调用syscall_ipc_can_multi_send，支持同时向5个进程通信，其用户态函数接口如下，请在user/lib.h中声明：
+
+int syscall_ipc_can_multi_send(u_int value, u_int srcva, u_int perm, u_int envid_1, u_int envid_2, u_int envid_3, u_int envid_4, u_int envid_5);
+
+其中value，srcva，perm的含义和syscall_ipc_can_send相同，后面的参数为要发送给的各个进程的进程号 系统调用号为SYS_ipc_can_multi_send，
+请在unistd.h中添加相关定义 需要在user/syscall_lib.c添加并实现用户态函数syscall_ipc_can_multi_send
+
+需要在lib/syscall_all.c添加并实现内核态函数sys_ipc_can_multi_send。
+
+对于该系统调用的行为规范如下：
+
+若接收的进程env_ipc_recving不全为1，则返回-E_IPC_NOT_RECV，
+若全为1，则发送消息
+必须为原子操作，不可使用ipc_send函数来完成，必须要实现sys_ipc_can_multi_send函数 成功时返回0
+
+修改user/lib.h中的msyscall函数声明，可以参考printf 修改user/syscall_lib.c，使每个系统调用都符合新规则 修改lib/syscall.S，增加拷贝多个参数的循环（重点） 修改include/unistd.h，
+增加系统调用号的定义 汇编内的跳转注意延迟槽 不支持mult,div等乘除指令，请不要使用 内核态参数拷贝时注意使用s0-s7保存栈空间 函数调用等寄存器使用规则参考指导书lab1相关内容。 
+系统调用寄存器使用规则参考指导书lab4相关内容。
+
+你需要修改的文件有： user/lib.h user/syscall_lib.c lib/syscall_all.c lib/syscall.S include/unistd.h 该部分不允许修改的文件： user/syscall_wrap.S 该部分不允许新建文件
+
+解答
+建议先看这一篇：lab4-笔记
+
+直接放自己syscall.S。
+
+/*** exercise 4.2 ***/
+NESTED(handle_sys,TF_SIZE, sp)
+    SAVE_ALL                            // Macro used to save trapframe
+    CLI                                 // Clean Interrupt Mask
+    nop
+    .set at                             // Resume use of $at
+
+    // TODO: Fetch EPC from Trapframe, calculate a proper value and store it back to trapframe.
+        lw t0, TF_EPC(sp)
+        addiu t0, t0, 4
+        sw t0, TF_EPC(sp)
+
+    // TODO: Copy the syscall number into $a0.
+    lw a0, TF_REG4(sp)
+
+    addiu   a0, a0, -__SYSCALL_BASE     // a0 <- relative syscall number
+    sll     t0, a0, 2                   // t0 <- relative syscall number times 4
+    la      t1, sys_call_table          // t1 <- syscall table base
+    addu    t1, t1, t0                  // t1 <- table entry of specific syscall
+    lw      t2, 0(t1)                   // t2 <- function entry of specific syscall
+
+    lw      t0, TF_REG29(sp)            // t0 <- user's stack pointer
+
+        // t2: func entry, t0 = sp_user
+
+        // 1. store the first 4 arg into reg, not include cnt, the 5th arg may in stack if exists
+        lw      a0, TF_REG4(sp)
+        lw      a1, TF_REG6(sp)
+        lw      a2, TF_REG7(sp)
+
+        lw      s1, TF_REG5(sp) // s1 = cnt
+
+        // 2. a3 need to store 5th arg, requires cnt >= 3
+        li              t3, 3
+        addiu   t0, t0, 16 // user_sp += 16, at stack arg field
+
+        blt     s1, t3, STORE_a3_END
+        nop
+        lw              a3, 0(t0)
+        addiu   t0, t0, 4 // user_sp += 4, at stack arg field
+STORE_a3_END:
+
+        li              t3, 4 // t3 = 4, cnt >= 4, stack has args
+
+        // 3. adjust sys_sp place
+        addiu   t4, s1, 1 // t4 = cnt + 1
+        sll             s2, t4, 2 // s2 = (cnt + 1) * 4
+
+        // just as mips promise, all args num is cnt + 1, save such **s2** places for them
+        // but here is a bug, args num least is 4, cnt may less then 3
+        // u may need to fix this, threat
+        subu    sp, sp, s2 // sys_sp down, sace place for stack arg
+        addiu   t5, sp, 16 // where put stack args, t5
+
+
+// now, copy user_sp args into sys_sp stack field
+COPY_ARG_BEG:
+        bgt             t3, s1, COPY_ARG_END // t3 = 4, begin
+        nop
+        lw              t4, 0(t0)
+        addiu   t0, t0, 4
+        sw              t4, 0(t5)
+        addiu   t5, t5, 4
+        addiu   t3, t3, 1
+        j               COPY_ARG_BEG
+        nop
+COPY_ARG_END:
+
+        jalr    t2
+        nop
+
+        // back, return saved args space
+        addu sp, sp, s2
+
+    sw      v0, TF_REG2(sp)             // Store return value of function sys_* (in $v0) into trapframe
+
+    j       ret_from_exception          // Return from exeception
+    nop
+END(handle_sys)
+
+sys_call_table:                         // Syscall Table
+.align 2
+    .word sys_putchar
+    .word sys_getenvid
+    .word sys_yield
+    .word sys_env_destroy
+    .word sys_set_pgfault_handler
+    .word sys_mem_alloc
+    .word sys_mem_map
+    .word sys_mem_unmap
+    .word sys_env_alloc
+    .word sys_set_env_status
+    .word sys_set_trapframe
+    .word sys_panic
+    .word sys_ipc_can_send
+    .word sys_ipc_recv
+    .word sys_cgetc
+    .word sys_ipc_can_multi_send
+我自己做的时候，修了两个bug，
+
+parse error before u_int 这个原因类似于return func(u_int a, u_int b)，func调用里面不能有参数类型
+undefined reference of sys_ipc_can_multi_send in syscall.S 表面上看是在syscall.S里面报错了，实际上，是lib/syscall_all.c里面，添加的那个函数，
+名字打成了syscall_ipc_can_multi_send(args)，多了个call，导致syscall.S在table那一步没法正常进入entry。
+Extra
+具体任务：
+
+需要为env控制块增加一个名为env_ipc_destination_id的成员，即标明最终目标进程id的变量。
+
+需要修改ipc_send函数，参数加入transfer_id。函数声明如下：
+
+void ipc_send(u_int whom, u_int value, u_int transfer_id, u_int srcva, u_int perm);
+
+其他函数的修改不做要求，保证可以通过编译即可。
+
+功能说明：
+
+若需要转发进程转发，则发送进程只需与转发进程直接通信即可，不需要完成进一步的与目的进程通信的工作；
+若不需要转发进程，则与课下实现的ipc机制相同，直接通信。
+注：transfer_id代表发送消息的进程所选择的转发进程进程号，
+
+若为-1，则代表不需要转发进程，发送进程直接与目标进程进行通信；
+若为正数，则保证该值一定等于某一个已创建的进程的进程号。
+样例1：进程1调用函数ipc_send(1024, 9, 4096, 0, 0)，那么进程4096作为转发进程，将该信息转发给进程1024。 样例2：进程1调用函数ipc_send(4096, 9, -1, 0, 0)，
+那么进程4096应直接接收进程1发来的信息，结束通信，不做转发处理。 样例3：进程1调用函数ipc_send(1024, 9, -1, 0, 0)，那么进程1024应直接接受进程1发来的信息，结束通信。
+
+解答
+关键的关键，就是在ipc.c里面要根据envid修改对应env的env_ipc_destination_id字段。但是envid2env()这个函数用户态用不了，必须要陷入内核态才能修改。
+
+因为没做出来，，就不丢人现眼了，可以聊聊思路，就是新定义一个系统调用，把transfer_id和envid传进去，把对应env的transfer_id给改了就行。
+
+总结
+这次上机出的题目很有代表性，分别考察了系统调用和“进程通信”，而进程之间通信又依赖于exam的系统调用，可以说覆盖地比较全面。
+
+lab4-2
+见此
+
+【lab4-笔记（连接上文）】
+笔记
+lab4-1最重要的就是明白系统调用是个什么顺序，以及MIPS函数调用时，参数传递的约定。
+
+首先，我们要能够理解教程中关于系统调用的讲解：
+
+操作系统将自己所能够提供的服务以系统调用的方式提供给用户空间。
+
+用户程序即可通过操作系统来完成一些特殊的操作。同时，所有的特殊操作就全部在操作系统的掌控之中了（因为用户程序只能通过由操作系统提供的系统调用来完成这些操作，
+所以操作系统可以确保用户不破坏系统的稳定）。
+
+而直接使用这些系统调用较为麻烦，于是由产生了用户空间的一系列API，如POSIX、C 标准库等，它们在系统调用的基础上，实现更多更高级的常用功能，
+使得用户在编写程序时不用再处理这些繁琐而复杂的底层操作，而是直接通过调用高层次的API 就能实现各种功能。
+
+系统调用和参数传递
+首先，有用户和内核之间的区别。用户调用user/syscall_lib.c里面的函数，就是syscall_*(args)之类的，注意这里叫做syscall，在我理解，只是一个call，而不是自己“真正地”执行。
+
+还要明确用户和内核都有自己的栈，即内核态执行汇编时，有自己专门的stack_pointer的位置，和用户态下stack_pointer的位置不一样。
+
+在这个过程，我们要知道MIPS参数传递的约定，如下图
+
+
+
+我觉得自己画地挺清楚的，这就是进入一个func函数后，那些参数被存储在了通用寄存器（和栈）里。值得注意的是，因为采用寄存器传参可以提高访问的速度，所以部分参数在寄存器里。
+
+栈底部总是空了四个，我猜想可能是给寄存器留的，说不定哪一天就不采用寄存器传参了，还可以理解为对取出第几个参数有好处——
+
+比如进入函数后，sp已经指向了arg0的位置（尽管是空的），我要arg5，那么，sp+4*5就行。
+
+syscall_\*()完了，跳到user/syscall_wrap.S，也只是起一个跳转的作用，再接着，就是一个大头，要我们填写的这个lib/syscall.S，注意这个汇编有一句SAVE_ALL，也就是说，
+刚刚那个在用户态进入函数的一个状态，包括所用通用寄存器的状态和用户态下栈的位置，都被freeze到了新的、内核态下sp的TrapFrame里面了。
+
+如下图：
+
+
+
+我们要做的，就是，在这个内核态，复现刚才在用户态下的状态——寄存器、栈里面，是按顺序排好的参数。
+
+那么思路就很明了：
+
+将TrapFrame里存储的$a0~$a3的内存块取出，放到现在的$a0~$a3里面
+暂时性存储user_sp，然后取出arg4和arg5，放到现在sys_sp下面对应的位置，
+按照寄存器传参约定，为sys_sp上面留好空白
+根据本.S最后那个table，跳转到内核函数，sys_*（注意这时没有“call”，有同学上机挂这了）
+返回后，sys_sp回归相应的位置，原来的参数用不着了
+...不用我们再填了
+弄懂这个，对上机大有好处，我就是在上机前一个晚上弄明白的，感谢我的老班长。
