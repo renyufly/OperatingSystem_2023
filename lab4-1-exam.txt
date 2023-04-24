@@ -1,0 +1,194 @@
+
+任宇翔
+2023春-操作系统
+提交评测
+2023-04-24 20:45:13 | 评测冷却: 139s
+Lab 4-1 Exam
+准备工作：创建并切换到 lab4-1-exam 分支
+基于已完成的 lab4 提交自动初始化 lab4-1-exam 分支
+
+在开发机依次执行以下命令：
+
+$ cd ~/学号
+$ git fetch
+$ git checkout lab4-1-exam
+初始化的 lab4-exam 分支基于课下完成的 lab4 分支，并且在 tests 目录下添加了 lab4_group_send 样例测试目录。
+
+题目背景 & 题目描述
+题目背景
+Linux系统的资源管理机制称为自主访问控制（DAC，Discretionary Access Control）。DAC主要的内容包括以下几个概念：主体、客体、权限（rwx）、所有权（ugo）。在这个模型中，主体是用户的身份，客体包括软硬件等各类资源。由客体的属主对自己的客体进行管理，由主体自己决定是否将自己的客体访问权限或部分访问权限授予其他主体，这种控制方式是自主的。也就是说，在自主访问控制下，用户可以按自己的意愿，有选择地与其他用户共享他的文件。
+
+DAC 的核心内容之一是：在 Linux 中，进程理论上所拥有的权限与执行它的用户的权限相同。具体来说，Linux 系统中每个进程都有2个ID，用于实现基于权限位的访问控制：
+
+uid：用户ID，为每个用户的唯一标识符。
+gid：组ID，为用户组的唯一标识符。
+进程运行时能够访问哪些资源或文件，不取决于进程文件的属主属组，而是取决于运行该命令的用户身份的 uid/gid，以该身份获取各种系统资源。
+
+以上材料仅用于帮助理解概念，具体的实现要求请以下文为准。
+
+题目描述
+在本题中，请你实现以下基于进程组ID的权限控制机制：首先，在内核中为每个进程维护进程组ID，需要保证每个进程创建时的的组ID为0。用户进程可以调用一个用户态函数，用来更改内核进程组ID表中本进程的组ID。然后，为原有的 IPC 机制实现权限控制。一个进程向其他进程发送组消息时，如果消息接收方进程与消息发送方进程的组ID不一致，则消息发送失败，返回特定错误码。
+
+具体来说，完成以上机制需要：
+
+在内核中为每个进程维护组ID，并保证在进程创建时的默认组ID为0。你可以使用全局数组 gid_table[NENV] 维护进程组ID表，使用 ENVX 宏获得进程在组ID表数组中的对应下标；或者在 struct Env 结构体中增加 u_int env_gid 字段。此外，你还需要修改 env_alloc 函数，将进程初始的组ID设置为0。
+
+实现一个用于修改进程组ID的用户函数，函数声明如下：
+
+/*  user/include/lib.h  */
+void set_gid(u_int gid);
+该用户函数修改内核的进程组ID表，将当前进程的组ID设置为参数 u_int gid 的值。
+
+此用户态函数的实现已经给出（请参看实验提供代码部分），你需要将其复制到 user/lib/ipc.c，在 user/include/lib.h 中添加此用户函数的声明，并为此用户态函数添加相应的系统调用。
+
+实现一个发送组消息的用户函数，函数声明如下：
+
+/*  user/include/lib.h  */
+int ipc_group_send(u_int whom, u_int val, const void *srcva, u_int perm);
+该用户函数向其他进程发送组消息。该函数与 ipc_send 函数的区别在于：在向消息接收方进程发送消息时，如果消息接收方进程与消息发送方进程的组ID不一致，则消息发送失败，消息发送方进程停止尝试发送请求的轮询，返回特定错误码；发送组消息成功时，该用户函数返回0。该函数参数的意义与 ipc_send 函数参数相同，其中 u_int whom 表示消息接收方进程号，u_int val 表示传递数值，const void *srcva 为传递页面地址，u_int perm 为传递页面的权限位。
+
+此用户态函数的实现已经给出（请参看实验提供代码部分），你需要将其复制到 user/lib/ipc.c，在 user/include/lib.h 中添加此用户函数的声明，并为此用户态函数添加相应的系统调用。
+
+题目要求
+在内核中为每个进程维护进程组ID，并保证每个进程创建时的的组ID为0。
+
+在 user/include/lib.h 中：
+
+添加以下两个用户函数的声明：
+void set_gid(u_int gid);
+int ipc_group_send(u_int whom, u_int val, const void *srcva, u_int perm);
+添加以下两个系统调用函数的声明：
+void syscall_set_gid(u_int gid);
+int syscall_ipc_try_group_send(u_int whom, u_int val, const void *srcva, u_int perm);
+在 include/error.h 中，增加以下新错误码 E_IPC_NOT_GROUP ，表示组间通信时通信双方进程的组ID不匹配。
+
+#define E_IPC_NOT_GROUP 14
+两个用户态函数的实现已经给出（请参看实验提供代码部分），你需要将其复制到 user/lib/ipc.c ，具体代码的解释在提示部分给出。
+
+在 include/syscall.h 中：定义两个新的系统调用号。请注意新增系统调用号的位置，应当位于 MAX_SYSNO 之前。
+
+在 user/lib/syscall_lib.c 中：实现上述两个系统调用函数，发起系统调用。
+
+在 kern/syscall_all.c 中：添加两个系统调用在内核中的实现函数。请保证两个函数的定义位于系统调用函数表 void *syscall_table[MAX_SYSNO] 之前。
+
+在 kern/syscall_all.c 中的 void *syscall_table[MAX_SYSNO] 系统调用函数表中，为你定义的系统调用号添加对应的内核函数指针。
+
+请注意：对于编写 syscall_ipc_try_group_send 系统调用在内核中的实现函数，有以下提示与要求：
+
+对于实验提供代码部分给出的新增用户态函数 ipc_group_send() ，可以类比课下的 ipc_send() 函数理解。课下的 ipc_send() 函数使用一种轮询机制尝试发送消息，也就是在 while 循环中捕获 -E_IPC_NOT_RECV 错误码，表示消息接收方未准备就绪（也就是消息接收方进程的 env_ipc_recving == 0 ），后续继续轮询尝试发送请求。
+
+我们在用户函数 ipc_group_send() 中增加对新的错误码 -E_IPC_NOT_GROUP 错误码的捕获，当消息发送方进程轮询结束（消息接收方准备就绪），发送方尝试发送消息的过程中捕获到非同组通信的错误码，停止轮询，用户函数向上层返回此错误码。
+
+上述两点意味着，编写 syscall_ipc_try_group_send 系统调用在内核中的实现函数时，判断 -E_IPC_NOT_RECV 错误的优先级高于 -E_IPC_NOT_GROUP 。具体来说，你可以参考 kern/syscall_all.c 中的 sys_ipc_try_send() 函数进行相关内核函数的设计：在判断 e->env_ipc_recving  之后，如果函数并不需要返回 -E_IPC_NOT_RECV 错误，再对通信双方进程进行组ID是否相等的判断。如果不相等则函数返回 -E_IPC_NOT_GROUP ；若相等则继续进行后续通信流程即可。
+
+实验提供代码
+/* copy to user/lib/ipc.c */
+
+void set_gid(u_int gid) {
+    // 你需要实现此 syscall_set_gid 系统调用
+    syscall_set_gid(gid);
+}
+
+int ipc_group_send(u_int whom, u_int val, const void *srcva, u_int perm) {
+    int r;
+    // 你需要实现此 syscall_ipc_try_group_send 系统调用
+    while ((r = syscall_ipc_try_group_send(whom, val, srcva, perm)) != 0) {
+        // 接受方进程尚未准备好接受消息，进程切换，后续继续轮询尝试发送请求
+        if (r == -E_IPC_NOT_RECV) syscall_yield();
+        // 接收方进程准备好接收消息，但非同组通信，消息发送失败，停止轮询，返回错误码 -E_IPC_NOT_GROUP
+        if (r == -E_IPC_NOT_GROUP) return -E_IPC_NOT_GROUP;
+    }
+    // 函数返回0，告知用户成功发送消息
+    return 0;
+}
+样例输出 & 本地测试
+对于如下用户程序样例：
+
+#include <lib.h>
+const int PP1 = 0x800, PP2 = 0x1001;
+int main() {
+        u_int me, who;
+        u_int wrong_message = -1;
+        u_int correct_message = 1;
+
+        me = syscall_getenvid();
+        debugf("i am %x\n", me);
+        if (me == PP1) {
+                who = PP2;
+
+                set_gid(11);
+                int group_send_error = ipc_group_send(who, wrong_message, 0, 0);
+                debugf("\ngroup_send_error should be -E_IPC_NOT_GROUP -14: you got %d\n",
+                       group_send_error);
+                user_assert(group_send_error == -E_IPC_NOT_GROUP);
+
+                set_gid(0);
+                int group_send_success = ipc_group_send(who, correct_message, 0, 0);
+                debugf("\ngroup_send_success should be 0: you got %d\n", group_send_success);
+                user_assert(group_send_success == 0);
+
+                debugf("\n@@@@@send %d from %x to %x\n", correct_message, me, who);
+
+        } else if (me == PP2) {
+                who = PP1;
+                 receive_message = ipc_recv(0, 0, 0);
+                debugf("\n%x got %d from %x\n", me, receive_message, who);
+
+                user_assert(receive_message == correct_message);
+
+        } else {
+                syscall_panic("halt");
+        }
+
+        debugf("\n%x successfully end\n", me);
+        return 0;
+}
+其应当输出：
+
+init.c: mips_init() is called
+Memory size: 65536 KiB, number of pages: 16384
+to memory 80430000 for struct Pages.
+pmap.c:  mips vm init success
+i am 1001
+i am 800
+
+group_send_error should be -E_IPC_NOT_GROUP -14: you got -14
+
+group_send_success should be 0: you got 0
+
+@@@@@send 1 from 800 to 1001
+
+800 successfully end
+[00000800] destroying 00000800
+[00000800] free env 00000800
+i am killed ...
+
+1001 got 1 from 800
+
+1001 successfully end
+[00001001] destroying 00001001
+[00001001] free env 00001001
+i am killed ...
+你可以使用：
+
+make test lab=4_group_send && make run 在本地测试上述样例（调试模式）
+MOS_PROFILE=release make test lab=4_group_send && make run 在本地测试上述样例（开启优化）
+或者在 tests/lab4_group_send/ppa.c 的 main() 函数中编写测试代码自行测试。
+
+提交评测 & 评测标准
+请在开发机中执行下列命令后，在课程网站上提交评测。
+
+$ cd ~/学号/
+$ git add -A
+$ git commit -m "message" # 请将 message 改为有意义的信息
+$ git push
+在线评测时，所有的 .mk 文件、所有的 Makefile 文件、init/init.c 以及 tests/ 和 tools/ 目录下的所有文件都可能被替换为标准版本，因此请同学们在本地开发时，不要在这些文件中编写实际功能所依赖的代码。
+
+测试点说明及分数分布如下：
+
+测试点序号	评测说明	分值
+1	与样例相同	10 分
+2	只测试设置用户组ID的用户函数	20 分
+3	只测试发送组消息的用户函数	25 分
+4	同时测试两个用户函数	25 分
+5	综合评测	20 分
