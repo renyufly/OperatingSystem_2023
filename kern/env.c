@@ -148,6 +148,13 @@ int envid2env(u_int envid, struct Env **penv, int checkperm) {
 	return 0;
 }
 
+int forenvid(int i, struct Env** penv) {
+	struct Env* e;
+	e = &envs[i];
+	*penv = e;
+	return 0;
+}
+
 /* Overview:
  *   Mark all environments in 'envs' as free and insert them into the 'env_free_list'.
  *   Insert in reverse order, so that the first call to 'env_alloc' returns 'envs[0]'.

@@ -439,6 +439,66 @@ int sys_ipc_try_send(u_int envid, u_int value, u_int srcva, u_int perm) {
 	return 0;
 }
 
+///
+int sys_ipc_try_broadcast(u_int value, u_int srcva, u_int perm) {
+	struct Env *e;
+	struct Page *p;
+
+	if(srcva != 0 && is_illegal_va(srcva)) {
+		return -E_INVAL;
+	}
+	
+	int i;
+	int flag = 0;
+	for(i=0; i<NENV; i++) {
+		forenvid(i, &e);
+		if(e && e->env_parent_id == curenv->env_id) {
+			flag = 1;
+			 while(flag == 1) {
+                	flag = 0;
+                 	int r = sys_ipc_try_send(e->env_id, value, srcva, perm);
+                 	if(r != 0) {
+                        	 return r;
+                 	}
+                 	int j;
+                	 int cur_id = e->env_id;
+                 	for(j=0; j<NENV; j++) {
+                        	 forenvid(j, &e);
+                         	if(e && e->env_parent_id == cur_id) {
+                                	flag = 1;
+                                        fornext(e, value, srcva, perm);
+					flag = 0;
+                         	}
+                 	}
+         		}  
+		}
+	}
+	return 0;
+}
+/*    */
+void fornext(struct Env*e, u_int value, u_int srcva, u_int perm) {
+	int flag = 1;
+	while(flag == 1) {
+		flag = 0;
+		int r =sys_ipc_try_send(e->env_id, value, srcva, perm);
+//		if(r != 0) {
+//			return r;
+//		}
+		int i;
+		int cur_id = e->env_id;
+		for(i=0; i<NENV;i++) {
+			forenvid(i, &e);
+			if(e && e->env_parent_id == cur_id) {
+				flag = 1;
+				fornext(e, value, srcva, perm);
+				flag = 0;
+			}
+		}
+	}
+}
+
+
+
 // XXX: kernel does busy waiting here, blocking all envs
 int sys_cgetc(void) {
 	int ch;
@@ -515,6 +575,7 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_cgetc] = sys_cgetc,
     [SYS_write_dev] = sys_write_dev,
     [SYS_read_dev] = sys_read_dev,
+    [SYS_broadcast] =  sys_ipc_try_broadcast,
 };
 
 /* Overview:
