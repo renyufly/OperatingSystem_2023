@@ -32,7 +32,7 @@ static void __attribute__((noreturn)) cow_entry(struct Trapframe *tf) {
 
 	/* Step 3: Allocate a new page at 'UCOW'. */
 	/* Exercise 4.13: Your code here. (3/6) */
-	syscall_mem_alloc(0, UCOW, PTE_D);
+	syscall_mem_alloc(0, UCOW, perm);
 
 	/* Step 4: Copy the content of the faulting page at 'va' to 'UCOW'. */
 	/* Hint: 'va' may not be aligned to a page! */
