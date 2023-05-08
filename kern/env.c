@@ -270,6 +270,8 @@ int env_alloc(struct Env **new, u_int parent_id) {
 	/* Exercise 3.4: Your code here. (3/4) */
 	e->env_id = mkenvid(e);
 	e->env_parent_id = parent_id;
+	e->barrier = 0;
+	e->tmpbar = 0;
 	r = asid_alloc(&e->env_asid);
 	if(r != 0){
 		return r;

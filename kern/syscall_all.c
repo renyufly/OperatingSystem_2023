@@ -534,14 +534,14 @@ int sys_read_dev(u_int va, u_int pa, u_int len) {
 	
 	return -E_INVAL;
 }
-
+//
 void sys_set_barrier(u_int envid, int n) {
 	struct Env* e;
 	struct Env* ret;
 	envid2env(envid, &e, 1);
 	ret = e;
 	while(e->env_parent_id != 0) {
-		e = envid2env(e->env_parent_id, &e, 0);
+		envid2env(e->env_parent_id, &e, 0);
 	}
 	e->barrier = n;
 }
@@ -549,7 +549,7 @@ int sys_get_barrier(u_int envid) {
 	struct Env* e;
 	envid2env(envid, &e, 1);
 	while(e->env_parent_id != 0) {
-		e = envid2env(e->env_parent_id, &e, 0);
+		envid2env(e->env_parent_id, &e, 0);
 	}
 	return e->barrier;
 }
@@ -557,7 +557,7 @@ void sys_dec_barrier(u_int envid) {
 	struct Env* e;
 	envid2env(envid, &e, 1);
 	while(e->env_parent_id != 0) {
-		e = envid2env(e->env_parent_id, &e, 0);
+		 envid2env(e->env_parent_id, &e, 0);
 	}
 	e->barrier = -1;
 }
@@ -565,28 +565,25 @@ void sys_set_tmpbar(u_int envid, int n) {
 	struct Env* e;
 	envid2env(envid, &e, 1);
 	while(e->env_parent_id != 0) {
-                 e = envid2env(e->env_parent_id, &e, 0);
+                  envid2env(e->env_parent_id, &e, 0);
          }
 	e->tmpbar = n;
 }
 int sys_get_tmpbar(u_int envid) {
 	struct Env* e;
 	envid2env(envid, &e, 1);
-	printk("hello");
 	while(e->env_parent_id != 0) {
-                  e = envid2env(e->env_parent_id, &e, 0);
+                   envid2env(e->env_parent_id, &e, 0);
           }
-	  printk("123\n");
 	return e->tmpbar;
 }
 void sys_inc_tmpbar(u_int envid) {
 	struct Env* e;
 	envid2env(envid, &e, 1);
-	printk("hello\n");
 	e->env_status = ENV_NOT_RUNNABLE;
 	TAILQ_REMOVE(&env_sched_list, e, env_sched_link);
 	while(e->env_parent_id != 0) {
-                  e = envid2env(e->env_parent_id, &e, 0);
+                   envid2env(e->env_parent_id, &e, 0);
 //		  e->env_status = ENV_NOT_RUNNABLE;
 //		  TAILQ_REMOVE(&env_sched_list, e, env_sched_link);
           }
@@ -598,7 +595,7 @@ void sys_awake(u_int envid) {
 	e->env_status = ENV_RUNNABLE;
 	TAILQ_INSERT_TAIL(&env_sched_list, e, env_sched_link);
 	while(e->env_parent_id != 0) {		                                                                                                                        
-		e = envid2env(e->env_parent_id, &e, 0);
+		 envid2env(e->env_parent_id, &e, 0);
 		e->env_status = ENV_RUNNABLE;
 		TAILQ_INSERT_TAIL(&env_sched_list, e, env_sched_link);
 	}

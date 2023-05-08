@@ -27,9 +27,9 @@ void mips_init() {
 //	 ENV_CREATE_PRIORITY(user_bare_loop, 2);
 
 	// lab4:
-	 ENV_CREATE(user_tltest);
-	 ENV_CREATE(user_fktest);
-	 ENV_CREATE(user_pingpong);
+	// ENV_CREATE(user_tltest);
+	// ENV_CREATE(user_fktest);
+	// ENV_CREATE(user_pingpong);
 
 	// lab6:
 	// ENV_CREATE(user_icode);  // This must be the first env!
@@ -42,8 +42,8 @@ void mips_init() {
 	// lab3:
 //	 kclock_init();
 //	 enable_irq();
-	while (1) {
-	}
+//	while (1) {
+//	}
 }
 
 #endif
