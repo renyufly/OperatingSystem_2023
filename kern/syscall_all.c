@@ -493,8 +493,19 @@ int sys_cgetc(void) {
  */
 int sys_write_dev(u_int va, u_int pa, u_int len) {
 	/* Exercise 5.1: Your code here. (1/2) */
+	if(is_illegal_va_range(va, len)) {
+		return -E_INVAL;
+	}
 
-	return 0;
+	if((0x10000000 <= pa && pa + len <= 0x10000020) ||
+	   (0x13000000 <= pa && pa + len <= 0x13004200) ||
+	   (0x15000000 <= pa && pa + len <= 0x15000200)
+	  ) {
+		memcpy((void* )(KSEG1 | pa), (void* )va, len);   //物理地址pa转内核虚拟地址
+		return 0;
+	}
+
+	return -E_INVAL;
 }
 
 /* Overview:
@@ -510,9 +521,91 @@ int sys_write_dev(u_int va, u_int pa, u_int len) {
  */
 int sys_read_dev(u_int va, u_int pa, u_int len) {
 	/* Exercise 5.1: Your code here. (2/2) */
-
-	return 0;
+	if(is_illegal_va_range(va, len)) {
+		return -E_INVAL;
+	}
+	//再验证pa，pa+len在范围内
+	if ((0x10000000 <= pa && pa + len <= 0x10000020) ||
+	    (0x13000000 <= pa && pa + len <= 0x13004200) ||
+	    (0x15000000 <= pa && pa + len <= 0x15000200)) {
+		memcpy((void *)va, (void *)(KSEG1 | pa), len);
+		return 0;
+	}
+	
+	return -E_INVAL;
 }
+
+void sys_set_barrier(u_int envid, int n) {
+	struct Env* e;
+	struct Env* ret;
+	envid2env(envid, &e, 1);
+	ret = e;
+	while(e->env_parent_id != 0) {
+		e = envid2env(e->env_parent_id, &e, 0);
+	}
+	e->barrier = n;
+}
+int sys_get_barrier(u_int envid) {
+	struct Env* e;
+	envid2env(envid, &e, 1);
+	while(e->env_parent_id != 0) {
+		e = envid2env(e->env_parent_id, &e, 0);
+	}
+	return e->barrier;
+}
+void sys_dec_barrier(u_int envid) {
+	struct Env* e;
+	envid2env(envid, &e, 1);
+	while(e->env_parent_id != 0) {
+		e = envid2env(e->env_parent_id, &e, 0);
+	}
+	e->barrier = -1;
+}
+void sys_set_tmpbar(u_int envid, int n) {
+	struct Env* e;
+	envid2env(envid, &e, 1);
+	while(e->env_parent_id != 0) {
+                 e = envid2env(e->env_parent_id, &e, 0);
+         }
+	e->tmpbar = n;
+}
+int sys_get_tmpbar(u_int envid) {
+	struct Env* e;
+	envid2env(envid, &e, 1);
+	printk("hello");
+	while(e->env_parent_id != 0) {
+                  e = envid2env(e->env_parent_id, &e, 0);
+          }
+	  printk("123\n");
+	return e->tmpbar;
+}
+void sys_inc_tmpbar(u_int envid) {
+	struct Env* e;
+	envid2env(envid, &e, 1);
+	printk("hello\n");
+	e->env_status = ENV_NOT_RUNNABLE;
+	TAILQ_REMOVE(&env_sched_list, e, env_sched_link);
+	while(e->env_parent_id != 0) {
+                  e = envid2env(e->env_parent_id, &e, 0);
+//		  e->env_status = ENV_NOT_RUNNABLE;
+//		  TAILQ_REMOVE(&env_sched_list, e, env_sched_link);
+          }
+	e->tmpbar++;
+}
+void sys_awake(u_int envid) {
+	struct Env* e;
+	envid2env(envid, &e, 1);
+	e->env_status = ENV_RUNNABLE;
+	TAILQ_INSERT_TAIL(&env_sched_list, e, env_sched_link);
+	while(e->env_parent_id != 0) {		                                                                                                                        
+		e = envid2env(e->env_parent_id, &e, 0);
+		e->env_status = ENV_RUNNABLE;
+		TAILQ_INSERT_TAIL(&env_sched_list, e, env_sched_link);
+	}
+	e->barrier = -1;
+}
+
+//
 
 void *syscall_table[MAX_SYSNO] = {
     [SYS_putchar] = sys_putchar,
@@ -533,6 +626,13 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_cgetc] = sys_cgetc,
     [SYS_write_dev] = sys_write_dev,
     [SYS_read_dev] = sys_read_dev,
+    [SYS_set_barrier] = sys_set_barrier,
+    [SYS_get_barrier] = sys_get_barrier,
+    [SYS_dec_barrier] = sys_dec_barrier,
+    [SYS_set_tmpbar] = sys_set_tmpbar,
+    [SYS_get_tmpbar] = sys_get_tmpbar,
+    [SYS_inc_tmpbar] = sys_inc_tmpbar,
+    [SYS_awake] = sys_awake,
 };
 
 /* Overview:

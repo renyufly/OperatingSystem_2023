@@ -22,6 +22,13 @@ enum {
 	SYS_cgetc,
 	SYS_write_dev,
 	SYS_read_dev,
+	SYS_set_barrier,
+	SYS_get_barrier,
+	SYS_dec_barrier,
+	SYS_set_tmpbar,
+	SYS_get_tmpbar,
+	SYS_inc_tmpbar,
+	SYS_awake,
 	MAX_SYSNO,
 };
 

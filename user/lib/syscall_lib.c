@@ -4,6 +4,29 @@
 #include <syscall.h>
 #include <trap.h>
 
+//
+void syscall_set_barrier(u_int envid, int n) {
+	msyscall(SYS_set_barrier, envid, n);
+}
+int syscall_get_barrier(u_int envid) {
+	return msyscall(SYS_get_barrier, envid);
+}
+void syscall_dec_barrier(u_int envid) {
+	msyscall(SYS_dec_barrier, envid);
+}
+void syscall_set_tmpbar(u_int envid, int n) {
+	msyscall(SYS_set_tmpbar, envid, n);
+}
+int syscall_get_tmpbar(u_int envid) {
+	return msyscall(SYS_get_tmpbar, envid);
+}
+void syscall_inc_tmpbar(u_int envid) {
+	msyscall(SYS_inc_tmpbar, envid);
+}
+void syscall_awake(u_int envid) {
+	msyscall(SYS_awake, envid);
+}
+//
 void syscall_putchar(int ch) {
 	msyscall(SYS_putchar, ch);
 }
@@ -67,10 +90,10 @@ int syscall_cgetc() {
 
 int syscall_write_dev(void *va, u_int dev, u_int len) {
 	/* Exercise 5.2: Your code here. (1/2) */
-
+	return msyscall(SYS_write_dev, va, dev, len);
 }
 
 int syscall_read_dev(void *va, u_int dev, u_int len) {
 	/* Exercise 5.2: Your code here. (2/2) */
-
+	return msyscall(SYS_read_dev, va, dev, len);
 }

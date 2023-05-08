@@ -34,6 +34,11 @@ struct Env {
 
 	// Lab 4 fault handling
 	u_int env_user_tlb_mod_entry; // user tlb mod handler
+	
+	//
+	u_int barrier;
+	u_int tmpbar;
+	//
 
 	// Lab 6 scheduler counts
 	u_int env_runs; // number of times been env_run'ed

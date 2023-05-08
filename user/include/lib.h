@@ -26,6 +26,11 @@ void debugf(const char *fmt, ...);
 void _user_panic(const char *, int, const char *, ...) __attribute__((noreturn));
 void _user_halt(const char *, int, const char *, ...) __attribute__((noreturn));
 
+//
+void barrier_alloc(int n);
+void barrier_wait(void);
+//
+
 #define user_panic(...) _user_panic(__FILE__, __LINE__, __VA_ARGS__)
 #define user_halt(...) _user_halt(__FILE__, __LINE__, __VA_ARGS__)
 
@@ -55,6 +60,16 @@ int syscall_set_tlb_mod_entry(u_int envid, void (*func)(struct Trapframe *));
 int syscall_mem_alloc(u_int envid, void *va, u_int perm);
 int syscall_mem_map(u_int srcid, void *srcva, u_int dstid, void *dstva, u_int perm);
 int syscall_mem_unmap(u_int envid, void *va);
+
+//
+void syscall_set_barrier(u_int envid, int n);
+int syscall_get_barrier(u_int envid);
+void syscall_dec_barrier(u_int envid);
+void syscall_set_tmpbar(u_int envid, int n);
+int syscall_get_tmpbar(u_int envid);
+void syscall_inc_tmpbar(u_int envid);
+void syscall_awake(u_int envid);
+//
 
 __attribute__((always_inline)) inline static int syscall_exofork(void) {
 	return msyscall(SYS_exofork, 0, 0, 0, 0, 0);
