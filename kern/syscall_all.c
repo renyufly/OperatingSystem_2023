@@ -582,11 +582,18 @@ void sys_inc_tmpbar(u_int envid) {
 	envid2env(envid, &e, 1);
 	e->env_status = ENV_NOT_RUNNABLE;
 	TAILQ_REMOVE(&env_sched_list, e, env_sched_link);
+	if(e->env_parent_id != 0) {
+		e->tmpbar = 1;
+	}
 	while(e->env_parent_id != 0) {
                    envid2env(e->env_parent_id, &e, 0);
+		   if(e->env_parent_id != 0) {
+			e->tmpbar = 1;
+		   }
 //		  e->env_status = ENV_NOT_RUNNABLE;
 //		  TAILQ_REMOVE(&env_sched_list, e, env_sched_link);
           }
+	  
 	e->tmpbar++;
 }
 void sys_awake(u_int envid) {
@@ -596,8 +603,10 @@ void sys_awake(u_int envid) {
 	TAILQ_INSERT_TAIL(&env_sched_list, e, env_sched_link);
 	while(e->env_parent_id != 0) {		                                                                                                                        
 		 envid2env(e->env_parent_id, &e, 0);
-		e->env_status = ENV_RUNNABLE;
-		TAILQ_INSERT_TAIL(&env_sched_list, e, env_sched_link);
+		 if(e->tmpbar != 0) {
+			e->env_status = ENV_RUNNABLE;
+			TAILQ_INSERT_TAIL(&env_sched_list, e, env_sched_link);
+		 }
 	}
 	e->barrier = -1;
 }
