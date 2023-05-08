@@ -1,0 +1,99 @@
+
+任宇翔
+2023春-操作系统
+提交评测
+2023-05-08 21:25:59
+Lab4-2 Exam
+准备工作：创建并切换到 lab4-2-exam 分支
+基于已完成的 lab4 提交自动初始化 lab4-2-exam 分支
+在开发机依次执行以下命令：
+$ cd ~/学号
+$ git fetch
+$ git checkout lab4-2-exam
+初始化的 lab4-2-exam 分支基于课下完成的 lab4 分支，并且在 tests 目录下添加了lab4_barrier 样例测试目录。
+
+题目背景
+我们通过 fork 函数可以实现创建多个进程，并使它们能够并行执行。但是，我们却并未解决多个进程并行执行时同步的问题。
+
+在并行程序中，使用同步原语是一种常见的同步手段。例如 Barrier 原语，常被用于实现对一组进程之间的同步。只有当该进程组中所有进程都到达了同步点时，才能从阻塞中恢复，继续正常执行。
+
+在本题中，我们将在 MOS 系统中实现 Barrier 的部分操作。
+
+题目描述
+在本题中，你需要在用户态下实现如下的两个函数，以完成 Barrier 的部分操作。注意，请同时在 user/include/lib.h 中声明，并在 user/lib/ipc.c 中实现。
+
+void barrier_alloc(int n)
+用于申请一个最多阻塞 n 个进程的 Barrier。
+
+进程申请的 Barrier 对该进程本身可见，并且在 fork 时被子进程继承。也就是说，在进程通过 fork 创建子进程时，对父进程可见的 Barrier 对其子进程，以及它们的所有后代进程仍可见。
+
+void barrier_wait(void)
+进程尝试阻塞在 Barrier 。
+
+若调用 barrier_wait 后，阻塞在 Barrier 处的进程数等于 Barrier 的最大阻塞进程数， 所有被 Barrier 阻塞的进程均需要从阻塞中恢复，同时 Barrier 失效
+
+Barrier 失效后，将不会再阻塞进程
+
+评测说明
+我们保证在每个评测点中，有且只有一个根进程，其余所有进程均是根进程的后代进程。
+
+第一次fork
+第二次fork
+第一次fork
+第二次fork
+第一次fork
+进程1
+进程1
+进程2
+进程3
+进程2
+进程4
+进程5
+进程5
+进程6
+如图所示，进程1即为根进程，进程2、进程3、进程4、进程5、进程6、进程7、进程8、进程9均是进程1的后代进程。
+
+barrier_alloc 只会在根进程中被调用，且至多被调用一次。
+
+barrier_alloc 在根进程中一定先于 fork 被调用。
+
+我们保证调用 barrier_wait 时 Barrier 一定存在，但 Barrier 可能已经失效。
+
+我们保证每个评测点中总的进程数目小于等于64个。
+
+在评测时，所有的 .mk 文件、所有的 Makefile 文件、 init/init.c 以及 tests/ 和 tools/ 目录下的所有文件都可能被替换为标准版本，因此请同学们在本地开发时，不要在这些文件中编写实际功能所依赖的代码。尤其注意请勿通过新建 *.c 文件并修改 Makefile 文件的方式实现函数。
+
+提示
+为了实现 Barrier ，需要允许多个进程访问和修改同一 Barrier 的状态。为了保证同步操作的原子性，你可以实现必要的系统调用，在内核空间中维护 Barrier 的状态信息，此时至少需要修改如下文件:
+
+在 user/include/lib.h 中添加你需要的系统调用的声明；
+在 include/syscall.h 中，添加你需要的系统调用号。请注意新增系统调用号的位置，应当位于 MAX_SYSNO 之前；
+在 user/lib/syscall_lib.c 中实现系统调用函数；
+在 kern/syscall_all.c 中添加系统调用在内核中的实现函数。请保证函数的定义位于系统调用函数表 void *syscall_table[MAX_SYSNO] 之前；
+在 kern/syscall_all.c 中的 void *syscall_table[MAX_SYSNO] 系统调用函数表中，为你定义的系统调用号添加对应的内核函数指针。
+对于阻塞，你可以在系统调用中修改进程状态（注意同时维护调度队列），也可以参考 ipc_send 在用户态等待。
+
+本地测试说明
+在我们提供的测试样例中，我们申请了一个容量为10的 Barrier ，并有9个进程等待在 Barrier 处，因此进程将始终被阻塞（否则将会 panic ）。如果运行中没有出现 panic，则说明你通过了本地测试，此时请使用 Ctrl+C 结束运行。
+
+你可以使用:
+
+make test lab=4_barrier && make run 在本地测试我们上述样例（调试模式）
+
+MOS_PROFILE=release make test lab=4_barrier && make run 在本地测试我们上述样例（开启优化）
+
+提交评测
+请在开发机中执行下列命令后，在课程网站上提交评测。
+
+$ cd ~/学号
+$ git add -A
+$ git commit -m "message"  # 请将 message 改为有意义的信息
+$ git push
+测试点分布
+测试点序号	评测内容	分数
+1	样例	10
+2	对阻塞的基本检测	5
+3	子进程不会调用 fork()	15
+4	子进程调用 fork()	20
+5	进程关系树更为复杂	20
+6	进程数目更大	30
