@@ -1,0 +1,159 @@
+
+任宇翔
+2023春-操作系统
+提交评测
+2023-05-08 21:26:07
+Lab4-2-Extra Semaphore
+准备工作：创建并切换到 lab4-2-extra 分支
+基于已完成的 lab4 提交自动初始化 lab4-2-extra 分支
+
+在开发机依次执行以下命令：
+
+$ cd ~/学号
+$ git fetch
+$ git checkout lab4-2-extra
+初始化的 lab4-2-extra 分支基于课下完成的 lab4 分支，并且在 tests 目录下添加了 lab4_sem 样例测试目录。
+
+题目背景 & 题目描述
+在理论课中，我们学习到了信号量的相关知识。信号量机制是实现进程间同步互斥的有效手段。在本 extra 中，我们希望在 lab4 的基础上新增简单的信号量相关功能。你需要实现以下五个用户态函数，实现进程间的同步互斥。
+
+定义错误码
+在 include/error.h 中添加新异常码。
+
+#define E_NO_SEM 14
+初始化信号量
+int sem_init(const char * name, int init_value, int checkperm)
+注册一个名为 name 的信号量，为其分配 id，设置权限与初始值。
+
+name 为信号量的名字，其初始值为 init_value ，checkperm 表示使用该信号量时是否需要检查进程的权限，
+非 0 时，表示该信号量仅该进程与该进程的后代（包括该进程及其所有后代的子进程）可见；为 0 时，表示该信号量对系统中的所有进程可见。
+
+成功初始化信号量返回值为被注册信号量的 id，若没有多余的 id 可以分配，则返回 -E_NO_SEM 。
+
+对信号量进行 P 操作
+int sem_wait(int sem_id)
+对 id 为 sem_id 的信号量进行 P 操作。
+
+当信号量的值大于 0 时，将信号量的值减 1。
+当信号量的值等于 0 时，申请该信号量的进程阻塞，当信号量的值重新大于 0 时，将信号量的值减 1, 进程继续执行。
+
+成功进行 P 操作后返回值为 0，若未找到符合权限的可操作信号量，则返回 -E_NO_SEM。
+
+对信号量进程 V 操作
+int sem_post(int sem_id)
+对 id 为 sem_id 的信号量进行 V 操作。
+
+将信号量的值加 1，若存在阻塞在此信号量上的进程，
+则唤醒一个阻塞在此信号量上的进程（不要求唤醒顺序）。
+
+成功进行 V 操作后返回值为 0，若未找到符合权限的可操作信号量，则返回 -E_NO_SEM。
+
+查询信号量的值
+int sem_getvalue(int sem_id)
+查询 id 为 sem_id 的信号量的值。
+
+成功查找返回值为 sem_id 对应的信号量的值，若未找到符合权限的可操作信号量，则返回 -E_NO_SEM。
+
+查询信号量的 id
+int sem_getid(const char *name)
+查询名为 name 的信号量的 id。
+
+成功查找返回值为查找到的信号量的 id，若未找到符合权限的可操作信号量，则返回 -E_NO_SEM。
+
+题目要求
+在 user/include/lib.h 中声明以下函数：
+
+int sem_init(const char *name, int init_value, int checkperm);
+int sem_wait(int sem_id);
+int sem_post(int sem_id);
+int sem_getvalue(int sem_id);
+int sem_getid(const char *name);
+在 user/lib/ipc.c 中实现以上函数。
+
+题目说明
+创建的信号量数量不超过 10 个，对 id 的分配方式不做要求。
+
+信号量名称不超过 32 个字节（包括 \0 ），测试中保证不会出现信号量重名。
+
+保证子进程访问父进程注册的信号量时，父进程未被销毁。
+
+提示
+为了完成以上五个函数，你可以通过添加对应的系统调用实现。
+
+样例输出 && 本地测试
+对于如下用户程序样例：
+
+#include <lib.h>
+
+static void os_assert(int cond, const char *err) {
+	if (!cond) {
+		user_halt("%s\n", err);
+	}
+}
+
+int main() {
+	int items_id = sem_init("items", 5, 0);
+	int lock_id = sem_init("lock", 0, 0);
+	int r = fork();
+	if (r < 0) {
+		user_halt("OSTEST_FORK");
+	}
+	if (r == 0) {
+		sem_wait(lock_id);
+		os_assert(sem_getvalue(items_id) == 4, "WRONG_RETURN_VALUE_WAIT");
+		os_assert(sem_getvalue(lock_id) == 0, "WRONG_RETURN_VALUE_WAIT");
+		debugf("OSTEST_OK\n");
+		return 0;
+	} else {
+		os_assert(sem_getvalue(items_id) == 5, "WRONG_RETURN_VALUE");
+		os_assert(sem_getvalue(lock_id) == 0, "WRONG_RETURN_VALUE");
+
+		sem_wait(items_id);
+
+		os_assert(sem_getvalue(items_id) == 4, "WRONG_RETURN_VALUE_WAIT");
+		os_assert(sem_getvalue(lock_id) == 0, "WRONG_RETURN_VALUE_WAIT");
+
+		sem_post(lock_id);
+		debugf("OSTEST_OK\n");
+		return 0;
+	}
+}
+
+其应当输出：
+
+init.c:	mips_init() is called
+Memory size: 65536 KiB, number of pages: 16384
+to memory 80430000 for struct Pages.
+pmap.c:	 mips vm init success
+OSTEST_OK
+[00000800] destroying 00000800
+[00000800] free env 00000800
+i am killed ...
+OSTEST_OK
+[00001001] destroying 00001001
+[00001001] free env 00001001
+i am killed ...
+
+你可以使用：
+
+make test lab4_sem && make run 在本地测试上述样例（调试模式）
+MOS_PROFILE=release make test lab=4_sem && make run 在本地测试上述样例（开启优化）
+或者在 tests/lab4_sem/test.c 的 main() 函数中编写测试代码自行测试。
+
+提交评测 & 评测标准
+请在开发机中执行下列命令后，在课程网站上提交评测。
+
+$ cd ~/学号
+$ git add -A
+$ git commit -m "message"  # 请将 message 改为有意义的信息
+$ git push
+在线评测时，所有的 .mk 文件、所有的 Makefile 文件、init/init.c 以及 tests/ 和 tools/ 目录下的所有文件都可能被替换为标准版本，因此请同学们在本地开发时，不要在这些文件中编写实际功能所依赖的代码。
+
+测试点和分数说明如下：
+
+测试点序号	评测内容	分数
+1	样例	20
+2	单进程异常相关测试	20
+3	只包含 checkperm 为真的信号量	20
+4	无异常综合测试	20
+5	综合测试	20
