@@ -50,6 +50,7 @@ void barrier_wait(void) {
 	u_int tmpbar = syscall_get_tmpbar(env->env_id);
 	if(bar == (tmpbar + 1)) {
 		syscall_awake(env->env_id);
+		syscall_dec_barrier(env->env_id);
 	} else if(bar == -1) {
 
 	}
