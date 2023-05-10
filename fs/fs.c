@@ -146,7 +146,7 @@ int map_block(u_int blockno) {
 	// Step 2: Alloc a page in permission 'PTE_D' via syscall.
 	// Hint: Use 'diskaddr' for the virtual address.
 	/* Exercise 5.7: Your code here. (2/5) */
-	try(syscall_mem_alloc(env->env_id, diskaddr(blockno), PTE_D)); //使用系统调用分配内存，当前进程是env；将blockno转成对应虚拟地址
+	syscall_mem_alloc(0, diskaddr(blockno), PTE_D); //使用系统调用分配内存，当前进程是env；将blockno转成对应虚拟地址
 
 }
 
@@ -157,7 +157,9 @@ void unmap_block(u_int blockno) {
 	void *va;
 	/* Exercise 5.7: Your code here. (3/5) */
 	va = block_is_mapped(blockno);
-
+	if(va == NULL) {
+		return;
+	}
 	// Step 2: If this block is used (not free) and dirty in cache, write it back to the disk
 	// first.
 	// Hint: Use 'block_is_free', 'block_is_dirty' to check, and 'write_block' to sync.
@@ -168,7 +170,7 @@ void unmap_block(u_int blockno) {
 
 	// Step 3: Unmap the virtual address via syscall.
 	/* Exercise 5.7: Your code here. (5/5) */
-	syscall_mem_unmap(env->env_id, diskaddr(blockno));  //使用系统调用解除内存映射
+	syscall_mem_unmap(0, diskaddr(blockno));  //使用系统调用解除内存映射
 
 	user_assert(!block_is_mapped(blockno));
 }
@@ -196,14 +198,14 @@ void free_block(u_int blockno) {
 	// You can refer to the function 'block_is_free' above.
 	// Step 1: If 'blockno' is invalid (0 or >= the number of blocks in 'super'), return.
 	/* Exercise 5.4: Your code here. (1/2) */
-	if(super == 0 || blockno >= super->s_nblocks) {    //super是超级块的指针，描述文件系统基本信息
+	if(blockno == 0 || blockno >= super->s_nblocks) {    //super是超级块的指针，描述文件系统基本信息
 		return;
 	}
 
 	// Step 2: Set the flag bit of 'blockno' in 'bitmap'.
 	// Hint: Use bit operations to update the bitmap, such as b[n / W] |= 1 << (n % W).
 	/* Exercise 5.4: Your code here. (2/2) */
-	bitmap[blockno / 32] |= 1 << (blockno % 32);  //bitmap数组每个元素含32bits，或上blockno对应32个里面的顺序
+	bitmap[blockno / 32] |= (1 << (blockno % 32));  //bitmap数组每个元素含32bits，或上blockno对应32个里面的顺序
 
 }
 

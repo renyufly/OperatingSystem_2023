@@ -173,7 +173,7 @@ int read(int fdnum, void *buf, u_int n) {
 	struct Dev *dev;
 	struct Fd *fd;
 	/* Exercise 5.10: Your code here. (1/4) */
-	if(r = fd_lookup(fdnum, &fd) < 0 || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
+	if((r = fd_lookup(fdnum, &fd)) < 0 || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
 		return r;
 	}
 
