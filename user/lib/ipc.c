@@ -37,3 +37,29 @@ u_int ipc_recv(u_int *whom, void *dstva, u_int *perm) {
 
 	return env->env_ipc_value;
 }
+
+//
+u_int get_time(u_int *us) {
+	int time = 0;
+	syscall_read_dev(&time, 0x15000000, 4);
+	syscall_read_dev(&time, 0x15000010, 4);
+	syscall_read_dev(us,    0x15000020, 4);
+	return time;
+}
+
+void usleep(u_int us) {
+	u_int *ms=NULL;
+	int entry_time = get_time(ms);
+	// 读取进程进入 usleep 函数的时间
+	while (1) {
+		// 读取当前时间
+		int *cur_ms=NULL;
+		int cur_time = get_time(cur_ms);
+		if (cur_time + cur_ms >= entry_time+ms + us/* 当前时间 >= 进入时间 + us 微秒*/) {
+			return;
+		} else {
+			// 进程切换
+			syscall_yield();
+		}
+	}
+}
