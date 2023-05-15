@@ -49,13 +49,13 @@ u_int get_time(u_int *us) {
 
 void usleep(u_int us) {
 	u_int *ms=NULL;
-	int entry_time = get_time(ms);
+	u_int entry_time = get_time(ms);
 	// 读取进程进入 usleep 函数的时间
 	while (1) {
 		// 读取当前时间
-		int *cur_ms=NULL;
-		int cur_time = get_time(cur_ms);
-		if (cur_time + cur_ms >= entry_time+ms + us/* 当前时间 >= 进入时间 + us 微秒*/) {
+		u_int *cur_ms=NULL;
+		u_int cur_time = get_time(cur_ms);
+		if ((((int)cur_time-(int)entry_time)*1000000 + ((int)(*cur_ms)-(int)(*ms))) >= us/* 当前时间 >= 进入时间 + us 微秒*/) {
 			return;
 		} else {
 			// 进程切换
