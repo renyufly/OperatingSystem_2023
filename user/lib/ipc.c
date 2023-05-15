@@ -55,7 +55,8 @@ void usleep(u_int us) {
 		// 读取当前时间
 		u_int *cur_ms=NULL;
 		u_int cur_time = get_time(cur_ms);
-		if ((((int)cur_time-(int)entry_time)*1000000 + ((int)(*cur_ms)-(int)(*ms))) >= us/* 当前时间 >= 进入时间 + us 微秒*/) {
+		if ((((int)cur_time-(int)entry_time)*100000 + ((int)(*cur_ms)-(int)(*ms))) >= us/* 当前时间 >= 进入时间 + us 微秒*/) {
+		//	debugf("hello:%d", *cur_ms);
 			return;
 		} else {
 			// 进程切换
