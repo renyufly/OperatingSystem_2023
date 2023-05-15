@@ -9,7 +9,11 @@
 // The maximum number of available ASIDs.
 // Our bitmap requires this to be a multiple of 32.
 #define NASID 64
-
+//
+static int lpmap[32];
+static int rwmap[32];
+static int pcount[32];
+//
 struct Env envs[NENV] __attribute__((aligned(BY2PG))); // All environments
 
 struct Env *curenv = NULL;	      // the current env

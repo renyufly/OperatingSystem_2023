@@ -12,7 +12,9 @@
 #define vpd ((volatile Pde *)(UVPT + (PDX(UVPT) << PGSHIFT)))
 #define envs ((volatile struct Env *)UENVS)
 #define pages ((volatile struct Page *)UPAGES)
-
+/*extern int lpmap[32]; //块号映射表
+extern int rwmap[32]; //物理块位图， 0可写，1不可写                                                                                                                                                                    
+extern int pcount[32];  //物理块累计擦除次数*/
 // libos
 void exit(void) __attribute__((noreturn));
 

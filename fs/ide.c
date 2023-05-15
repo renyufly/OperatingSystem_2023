@@ -7,9 +7,10 @@
 #include <lib.h>
 #include <mmu.h>
 
- int lpmap[32]; //块号映射表
-   int rwmap[32]; //物理块位图， 0可写，1不可写
-   int pcount[32];  //物理块累计擦除次数
+
+ static int lpmap[32]= {0}; //块号映射表
+static int rwmap[32]= {0}; //物理块位图， 0可写，1不可写
+ static int pcount[32]= {0};  //物理块累计擦除次数
 
 // Overview:
 //  read data from IDE disk. First issue a read request through
@@ -100,6 +101,7 @@ void ssd_init() {
 		lpmap[i] = 0xFFFFFFFF;
 		rwmap[i] = 0;
 		pcount[i] = 0;
+//		debugf("hello");
 	}
 }
 
@@ -119,7 +121,7 @@ void ssd_write(u_int logic_no, void *src) {
 		lpmap[logic_no] = phy;
 		ide_write(0, phy, src, 1);
 		rwmap[phy] = 1;
-
+		//debugf("hello%d", phy);
 	} else {
 		int phy_no = lpmap[logic_no];
 		remove_phy(phy_no);
@@ -141,11 +143,13 @@ void ssd_erase(u_int logic_no) {
 //
 
 void remove_phy(u_int number) {
-	void *a = NULL;
+	int num = 5;
+	int *a = &num;
 	memset(a, 0, BY2SECT);
 	ide_write(0, number, a, 1);
 	rwmap[number] = 0;
 	pcount[number]++;
+	//debugf("hello");
 } //擦除物理块
 
 int alloc_phy() {

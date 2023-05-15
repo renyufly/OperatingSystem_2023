@@ -16,7 +16,7 @@ int ssd_read_number(u_int logic_no) {
 
 int main() {
 	char dst[512];
-
+//	user_panic("hello\n");
 	ssd_init();
 	for (int i = 0; i < 16; i++) {
 		ssd_write_number(i, i * i);
