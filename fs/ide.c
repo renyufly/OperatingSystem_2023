@@ -7,6 +7,10 @@
 #include <lib.h>
 #include <mmu.h>
 
+ int lpmap[32]; //块号映射表
+   int rwmap[32]; //物理块位图， 0可写，1不可写
+   int pcount[32];  //物理块累计擦除次数
+
 // Overview:
 //  read data from IDE disk. First issue a read request through
 //  disk register and then copy data from disk buffer
@@ -82,3 +86,130 @@ void ide_write(u_int diskno, u_int secno, void *src, u_int nsecs) {
 
 	}
 }
+
+//  ↓    //
+/*
+int lpmap[32]; //块号映射表
+ int rwmap[32]; //物理块位图， 0可写，1不可写
+ int pcount[32];  //物理块累计擦除次数
+*/
+
+void ssd_init() {
+	int i;
+	for(i=0; i<32; i++) {
+		lpmap[i] = 0xFFFFFFFF;
+		rwmap[i] = 0;
+		pcount[i] = 0;
+	}
+}
+
+int ssd_read(u_int logic_no, void *dst) {
+	if(lpmap[logic_no] == 0xFFFFFFFF) {
+		return -1;
+	} else {
+		int phy_no = lpmap[logic_no];
+		ide_read(0, phy_no, dst, 1);
+		return 0;
+	}
+}
+
+void ssd_write(u_int logic_no, void *src) {
+	if(lpmap[logic_no] == 0XFFFFFFFF) {
+		int phy = alloc_phy();
+		lpmap[logic_no] = phy;
+		ide_write(0, phy, src, 1);
+		rwmap[phy] = 1;
+
+	} else {
+		int phy_no = lpmap[logic_no];
+		remove_phy(phy_no);
+		int phy = alloc_phy();
+		lpmap[logic_no] = phy;
+		ide_write(0, phy, src, 1);
+		rwmap[phy] = 1;
+	}
+}
+
+void ssd_erase(u_int logic_no) {
+	if(lpmap[logic_no] != 0XFFFFFFFF) {
+		int phy = lpmap[logic_no];
+		remove_phy(phy);
+		lpmap[logic_no] = 0XFFFFFFFF;
+	}
+}
+
+//
+
+void remove_phy(u_int number) {
+	void *a = NULL;
+	memset(a, 0, BY2SECT);
+	ide_write(0, number, a, 1);
+	rwmap[number] = 0;
+	pcount[number]++;
+} //擦除物理块
+
+int alloc_phy() {
+	int min ;
+	int i;
+	for(i=0; i<32; i++) {
+		if(rwmap[i] == 0) {
+			min = i;
+			break;
+		}
+	}
+	for(i=0; i<32; i++) {
+		if(rwmap[i] == 0) {
+			if(pcount[i] < pcount[min] || (pcount[i] == pcount[min] && i < min)) {
+				min = i;
+			}
+		}
+	}
+	if(pcount[min] < 5) {
+		return min;
+	}else {
+		int b;
+		int j;
+		for(j=0; j<32; j++) {
+			if(rwmap[j] == 1) {
+				b = j;
+				break;
+			}
+		}
+		for(j=0; j<32; j++) {
+			if(rwmap[j] == 1) {
+				if(pcount[j] < pcount[b] || (pcount[j] == pcount[b] && j < b)) {
+					b = j;
+				}
+			}
+		}
+		void* tmp;
+		ide_read(0, b, tmp, 1);
+		ide_write(0, min, tmp, 1);
+		rwmap[min] = 1;
+		int logic;
+		int k;
+		for(k = 0; k<32; k++) {
+			if(lpmap[k] == b) {
+				lpmap[k] = min;
+				break;
+			}
+		}
+
+		remove_phy(b);
+		return b;
+	}
+
+} //分配物理块
+
+
+
+
+
+
+
+
+
+
+
+
+
