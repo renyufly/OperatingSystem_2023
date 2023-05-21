@@ -146,7 +146,7 @@ int map_block(u_int blockno) {
 	// Step 2: Alloc a page in permission 'PTE_D' via syscall.
 	// Hint: Use 'diskaddr' for the virtual address.
 	/* Exercise 5.7: Your code here. (2/5) */
-	syscall_mem_alloc(0, diskaddr(blockno), PTE_D); //使用系统调用分配内存，当前进程是env；将blockno转成对应虚拟地址
+	return syscall_mem_alloc(0, diskaddr(blockno), PTE_D); //使用系统调用分配内存，当前进程是env；将blockno转成对应虚拟地址
 
 }
 

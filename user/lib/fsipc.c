@@ -115,7 +115,7 @@ int fsipc_remove(const char *path) {
 	// Step 1: Check the length of 'path' using 'strlen'.
 	// If the length of path is 0 or larger than 'MAXPATHLEN', return -E_BAD_PATH.
 	/* Exercise 5.12: Your code here. (1/3) */
-	if(!(*path) || strlen(path) > MAXPATHLEN) {
+	if(strlen(path) == 0 || strlen(path) > MAXPATHLEN) {
 		return -E_BAD_PATH;
 	}
 
