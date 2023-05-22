@@ -672,7 +672,11 @@ int walk_path_at(struct File *par_dir, char *path, struct File **pdir, struct Fi
 	}
 
 	*pfile = file;
-
+//	debugf("%s\n", path);
+/*	while (*path != '/' && *path != '\0') {
+			path++;
+		}
+	path = skip_slash(path);*/
 	// find the target file by name recursively.
 	while (*path != '\0') {
 		dir = file;

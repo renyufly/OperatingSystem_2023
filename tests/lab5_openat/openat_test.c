@@ -8,7 +8,11 @@ int main() {
 		user_panic("open dir failed: %d", r);
 	}
 	dirfd = r;
-
+	char buff[1024];
+	read(r, buff, 23);
+	buff[23] = '\0';
+	debugf("%s\n", buff);
+	debugf("hello\n");
 	if ((r = openat(dirfd, "test_file", O_RDWR)) < 0) {
 		user_panic("openat file filed: %d", r);
 	}
@@ -22,7 +26,7 @@ int main() {
 		user_panic("read file failed");
 	}
 	buf[len] = '\0';
-
+	debugf("%d\n", r);
 	debugf("%s\n", buf);
 
 	if (strcmp(str, buf) != 0) {
