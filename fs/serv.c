@@ -117,23 +117,43 @@ void serve_open(u_int envid, struct Fsreq_open *rq) {
 }
 
 //     |          |        //
-void serve_openat(u_int envid, struct Fsreq_openat *rq) {
+void serve_openat(u_int envid, struct Fsreq_openat*rq) {
+	struct File *f;
+	struct Filefd *ff;
 	int r;
+	struct Open *o;
+
+	//exam
 	struct Open *pOpen;
 	if ((r = open_lookup(envid, rq->dir_fileid, &pOpen)) < 0) {
 		ipc_send(envid, r, 0, 0);
 		return;
 	}
 	struct File *dir = pOpen->o_file;
-	struct Filefd* dirfd =  (struct Filefd *)pOpen->o_ff;
-	dirfd->f_file = *dir;
-	dirfd->f_fileid = pOpen->o_fileid;
-	pOpen->o_mode = rq->req_omode;
-	dirfd->f_fd.fd_omode = pOpen->o_mode;
-	dirfd->f_fd.fd_dev_id = devfile.dev_id;
+	//  ↑   
+	// Find a file id.
+	if ((r = open_alloc(&o)) < 0) {
+		ipc_send(envid, r, 0, 0);
+	}
 
-	ipc_send(envid, 0, pOpen->o_ff, PTE_D | PTE_LIBRARY);
+	// Open the file.
+	if ((r = file_openat(dir, rq->req_path, &f)) < 0) {   // 使用 file_openat
+		ipc_send(envid, r, 0, 0);
+		return;
+	}
 
+	// Save the file pointer.
+	o->o_file = f;
+
+	// Fill out the Filefd structure
+	ff = (struct Filefd *)o->o_ff;
+	ff->f_file = *f;
+	ff->f_fileid = o->o_fileid;
+	o->o_mode = rq->req_omode;
+	ff->f_fd.fd_omode = o->o_mode;
+	ff->f_fd.fd_dev_id = devfile.dev_id;
+
+	ipc_send(envid, 0, o->o_ff, PTE_D | PTE_LIBRARY);
 }
 
 //                       //
