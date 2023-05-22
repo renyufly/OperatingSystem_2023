@@ -1,0 +1,149 @@
+
+任宇翔
+2023春-操作系统
+提交评测
+2023-05-22 21:28:08
+Lab5-2-Exam
+准备工作：创建并切换到 lab5-2-exam 分支
+请在自动初始化分支后，在开发机依次执行以下命令：
+
+$ cd ~/学号
+$ git fetch
+$ git checkout lab5-2-exam
+初始化的 lab5-2-exam 分支基于课下完成的 lab5 分支，并且在 tests 目录下添加了lab5_openat 样例测试目录。
+
+问题描述
+我们在课下已经实现了函数 int open(const char *path, int mode) ，利用绝对路径（相对于根目录的路径）path 定位文件。在实际的用户程序中，完成同一任务时打开的多个文件往往存储在同一目录下，然而系统每次打开文件时都需要从根目录开始查找路径，从而重复访问相同的目录。
+
+在本次测试中，我们希望同学们实现 int openat(int dirfd, const char *path, int mode) 函数，利用相对于目录 dirfd 的相对路径 path 定位并打开文件，其中文件描述符 dirfd 指向已通过 open() 打开的目录。相对路径 path 也可能包含路径分隔符 /，表示查找目录 dirfd 下嵌套的目录中的文件。
+
+openat 用法代码完整示例：
+
+#include <lib.h>
+
+int main() {
+	int dirfd, filefd;
+	int r;
+
+	if ((r = open("/dir", O_RDONLY)) < 0) {
+		user_panic("open dir failed: %d", r);
+	}
+	dirfd = r;							// dirfd 是通过打开相对根目录的路径来获取
+
+
+	if ((r = openat(dirfd, "newmotd", O_RDWR)) < 0) {
+		user_panic("openat file filed: %d", r);
+	}
+	filefd = r;							// filefd 是在 dirfd 目录下通过相对路径来获取
+
+	close(filefd);
+	close(dirfd);
+}
+测试点满足要求：
+
+调用 open 打开的路径均存在；
+调用 openat 打开的路径均存在，且为普通文件（而非目录）；
+向 openat 传入的 dirfd 均指向已打开且可读取的目录文件；
+调用 openat 打开的路径均为相对路径，即不会以 / 开头。
+提示
+openat 的一种实现思路：
+
+在 user/include/fsreq.h 中增加一个对于文件系统的请求类型 #define FSREQ_OPENAT 8 和请求结构体：
+
+   struct Fsreq_openat {
+   	u_int dir_fileid;
+   	char req_path[MAXPATHLEN];
+   	u_int req_omode;
+   };
+在 user/lib/fsipc.c 中仿照 fsipc_open 实现 int fsipc_openat(u_int dir_fileid, const char *path, u_int omode, struct Fd *fd)，完成对 Fsreq_openat 各个字段的赋值，并与文件系统服务进程进行通信。
+
+在 user/lib/file.c 中仿照 open 函数实现 int openat(int dirfd, const char *path, int mode)，实现这一函数的相关提示：
+
+调用 fd_lookup 利用 dirfd 查找 dirfd 的文件描述符 struct Fd *dir
+将 struct Fd *dir 指向的类型转换为 struct Filefd 后获得 dirfd 对应的 fileid
+调用 fsipc_openat 打开文件并完成对指针 fd 的赋值。
+在 fs/fs.c 中，仿照 walk_path 实现 int walk_path_at(struct File *par_dir, char *path, struct File **pdir, struct File **pfile, char *lastelem)，在 par_dir 目录下按相对路径 path 查找文件，并仿照 file_open 实现 int file_openat(struct File *dir, char *path, struct File **file) 调用 walk_path_at 函数。
+
+在 fs/serv.c 中仿照 serve_open 实现 serve_openat 函数，并在 serve 函数中增加关于 openat 请求的判断。提示：
+
+可以参考以下实现，利用 dir_fileid 查找已经被打开的 dirfd 对应的文件控制块：
+	struct Open *pOpen;
+	if ((r = open_lookup(envid, rq->dir_fileid, &pOpen)) < 0) {
+		ipc_send(envid, r, 0, 0);
+		return;
+	}
+	struct File *dir = pOpen->o_file;
+上述函数中，需要在 user/include/lib.h 中增加 int openat(int dirfd, const char *path, int mode) 、 int fsipc_openat(u_int, const char *, u_int, struct Fd *) 函数声明，在 fs/serv.h 中增加 int file_openat(struct File *dir, char *path, struct File **pfile) 函数声明。
+
+本题所有的测试点中对应的文件均存在且能被正确打开，不考察错误处理的情况。同学们可以仿照 open 等函数实现异常返回，或在代码中自行定义可能出现的各种异常返回值。
+
+样例输出 & 本地测试
+对于创建运行如下代码的进程，
+
+#include <lib.h>
+
+int main() {
+	int dirfd, filefd;
+	int r;
+
+	if ((r = open("/test_dir", O_RDONLY)) < 0) {
+		user_panic("open dir failed: %d", r);
+	}
+	dirfd = r;
+
+	if ((r = openat(dirfd, "test_file", O_RDWR)) < 0) {
+		user_panic("openat file filed: %d", r);
+	}
+	filefd = r;
+
+	char buf[1024];
+	char *str = "successfully open file!";
+	int len = 23;
+	int l = read(r, buf, len);
+	if (l != len) {
+		user_panic("read file failed");
+	}
+	buf[len] = '\0';
+
+	if (strcmp(str, buf) != 0) {
+		debugf("test openat failed\n");
+		return -1;
+	}
+
+	debugf("successfully openat file!\n");
+
+	close(filefd);
+	close(dirfd);
+	return 0;
+}
+应当输出：
+
+successfully openat file!
+输出说明：
+
+successfully open file! 是 /test_dir/test_file 文件中的前23个字符，如果open、openat、read函数正确实现，则能够顺利打开该文件并将文件内容读入到 buf 中。
+你可以使用：
+
+make test lab=5_openat && make run 在本地测试上述样例（调试模式）
+
+MOS_PROFILE=release make test lab=5_openat && make run 在本地测试上述样例（开启优化）
+
+或者在 tests/lab5_openat/test_openat.c 的 main() 函数中编写测试代码、在 tests/lab5_openat/rootfs 下创建 test_openat.c 的函数中相对应的文件或文件夹来自行测试。
+
+提交评测 & 评测标准
+请在开发机中执行下列命令后，在课程网站上提交评测。
+
+$ cd ~/学号
+$ git add -A
+$ git commit -m "message"  # 请将 message 改为有意义的信息
+$ git push
+在线评测时，所有的 .mk 文件、所有的 Makefile 文件、init/init.c 以及 tests/ 和 tools/ 目录下的所有文件都可能被替换为标准版本，因此请同学们在本地开发时，不要在这些文件中编写实际功能所依赖的代码。
+
+测试点和分数说明如下：
+
+测试点序号	评测内容	分数
+1	与样例结构相同，但打开的文件名字及文件内容不同	10
+2	调用 open 打开的目录为多层目录，如 "/dir1/dir2/dir3"	25
+3	调用 openat 打开的文件为多层目录下的文件，如  "dir1/dir2/file"	25
+4	测试open打开文件、open打开多层目录、openat打开多层目录下的文件	20
+5	测试open打开文件、open打开多层目录、openat打开多层目录下的文件	20
