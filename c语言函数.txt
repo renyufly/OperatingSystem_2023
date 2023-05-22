@@ -1,0 +1,130 @@
+memset()
+
+描述
+C 库函数 void *memset(void *str, int c, size_t n) 复制字符 c（一个无符号字符）到参数 str 所指向的字符串的前 n 个字符。
+
+声明
+下面是 memset() 函数的声明。
+
+void *memset(void *str, int c, size_t n)
+参数
+str -- 指向要填充的内存块。
+c -- 要被设置的值。该值以 int 形式传递，但是函数在填充内存块时是使用该值的无符号字符形式。
+n -- 要被设置为该值的字符数。
+/******/
+char str[50];
+memset(str,0,7);
+
+
+memcpy()
+
+描述
+C 库函数 void *memcpy(void *str1, const void *str2, size_t n) 从存储区 str2 复制 n 个字节到存储区 str1。
+
+声明
+下面是 memcpy() 函数的声明。
+
+void *memcpy(void *str1, const void *str2, size_t n)
+参数
+str1 -- 指向用于存储复制内容的目标数组，类型强制转换为 void* 指针。
+str2 -- 指向要复制的数据源，类型强制转换为 void* 指针。
+n -- 要被复制的字节数。
+/*************/
+  const char src[50] = "http://www.runoob.com";
+  char dest[50];
+  memcpy(dest, src, strlen(src)+1);
+
+
+strcpy()
+
+C 库函数 char *strcpy(char *dest, const char *src) 把 src 所指向的字符串复制到 dest。
+
+需要注意的是如果目标数组 dest 不够大，而源字符串的长度又太长，可能会造成缓冲溢出的情况。
+
+声明
+下面是 strcpy() 函数的声明。
+
+char *strcpy(char *dest, const char *src)
+参数
+dest -- 指向用于存储复制内容的目标数组。
+src -- 要复制的字符串。
+返回值
+该函数返回一个指向最终的目标字符串 dest 的指针。
+/*****************/
+   char src[40];
+   char dest[100];
+   memset(dest, '\0', sizeof(dest));
+   strcpy(src, "This is runoob.com");
+   strcpy(dest, src);
+
+
+strlen()
+
+C 库函数 int strcmp(const char *str1, const char *str2) 把 str1 所指向的字符串和 str2 所指向的字符串进行比较。
+
+声明
+下面是 strcmp() 函数的声明。
+
+int strcmp(const char *str1, const char *str2)
+参数
+str1 -- 要进行比较的第一个字符串。
+str2 -- 要进行比较的第二个字符串。
+返回值
+该函数返回值如下：
+
+如果返回值小于 0，则表示 str1 小于 str2。
+如果返回值大于 0，则表示 str1 大于 str2。
+如果返回值等于 0，则表示 str1 等于 str2。
+/****************/
+   char str1[15];
+   char str2[15];
+   int ret;
+   strcpy(str1, "abcdef");
+   strcpy(str2, "ABCDEF");
+   ret = strcmp(str1, str2);
+
+
+strlen()
+
+描述
+C 库函数 size_t strlen(const char *str) 计算字符串 str 的长度，直到空结束字符，但不包括空结束字符。
+
+声明
+下面是 strlen() 函数的声明。
+
+size_t strlen(const char *str)
+参数
+str -- 要计算长度的字符串。
+返回值
+该函数返回字符串的长度。
+/******************/
+   char str[50];
+   int len;
+   strcpy(str, "This is runoob.com");
+   len = strlen(str);
+
+
+malloc()
+【需要free来释放】
+描述
+C 库函数 void *malloc(size_t size) 分配所需的内存空间，并返回一个指向它的指针。
+
+声明
+下面是 malloc() 函数的声明。
+
+void *malloc(size_t size)
+参数
+size -- 内存块的大小，以字节为单位。
+返回值
+该函数返回一个指针 ，指向已分配大小的内存。如果请求失败，则返回 NULL。
+/************************/
+    char *str;
+   /* 最初的内存分配 */
+   str = (char *) malloc(15);
+   strcpy(str, "runoob");
+   printf("String = %s,  Address = %u\n", str, str);
+   /* 重新分配内存 */
+   str = (char *) realloc(str, 25);
+   strcat(str, ".com");     //字符串拼接到尾部
+ /* 释放已分配的内存 */
+   free(str);
