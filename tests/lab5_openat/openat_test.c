@@ -23,6 +23,8 @@ int main() {
 	}
 	buf[len] = '\0';
 
+	debugf("%s\n", buf);
+
 	if (strcmp(str, buf) != 0) {
 		debugf("test openat failed\n");
 		return -1;

@@ -116,6 +116,27 @@ void serve_open(u_int envid, struct Fsreq_open *rq) {
 	ipc_send(envid, 0, o->o_ff, PTE_D | PTE_LIBRARY);
 }
 
+//     |          |        //
+void serve_openat(u_int envid, struct Fsreq_openat *rq) {
+	int r;
+	struct Open *pOpen;
+	if ((r = open_lookup(envid, rq->dir_fileid, &pOpen)) < 0) {
+		ipc_send(envid, r, 0, 0);
+		return;
+	}
+	struct File *dir = pOpen->o_file;
+	struct Filefd* dirfd =  (struct Filefd *)pOpen->o_ff;
+	dirfd->f_file = *dir;
+	dirfd->f_fileid = pOpen->o_fileid;
+	pOpen->o_mode = rq->req_omode;
+	dirfd->f_fd.fd_omode = pOpen->o_mode;
+	dirfd->f_fd.fd_dev_id = devfile.dev_id;
+
+	ipc_send(envid, 0, pOpen->o_ff, PTE_D | PTE_LIBRARY);
+
+}
+
+//                       //
 void serve_map(u_int envid, struct Fsreq_map *rq) {
 	struct Open *pOpen;
 	u_int filebno;
@@ -244,6 +265,10 @@ void serve(void) {
 
 		case FSREQ_SYNC:
 			serve_sync(whom);
+			break;
+
+		case FSREQ_OPENAT:                    //	
+			serve_openat(whom, (struct Fsreq_openat*)REQVA);
 			break;
 
 		default:

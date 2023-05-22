@@ -62,6 +62,30 @@ int open(const char *path, int mode) {
 
 }
 
+//       ↓     ↓    //
+int openat(int dirfd, const char *path, int mode) {
+	int r;
+	struct Fd* dir;
+	fd_lookup(dirfd, &dir);
+	struct Filefd* dirffd;
+	dirffd = (struct Filefd*)dir;
+	u_int fileid;
+	fileid = dirffd->f_fileid;
+	fsipc_openat(fileid, path, mode, dir);
+
+	char* va;
+	va = fd2data(dir);             //获得地址
+	u_int size;
+	size = dirffd->f_file.f_size;
+	for (int i = 0; i < size; i += BY2PG) {
+		try(fsipc_map(fileid, i, va+i));	  // i即偏移量offset
+	}
+	return fd2num(dir);    //返回文件描述符fd的编号
+}
+
+
+
+//
 // Overview:
 //  Close a file descriptor
 int file_close(struct Fd *fd) {
